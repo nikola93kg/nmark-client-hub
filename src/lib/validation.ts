@@ -1,10 +1,29 @@
+import { t } from "@/lib/localization";
 import { z } from "zod";
+
+z.config({ customError(issue) {
+  switch (issue.code) {
+    case "invalid_value": return t("Validation selection");
+    case "invalid_type": return t("Validation type");
+    case "too_big": return t("Validation too long", { limit: String(issue.maximum) });
+    case "too_small": return t("Validation too short", { limit: String(issue.minimum) });
+    case "invalid_format":
+      switch (issue.format) {
+        case "date": return t("Validation date");
+        case "email": return t("Validation email");
+        case "uuid": return t("Validation UUID");
+        case "url": return t("Validation URL");
+      }
+      break;
+  }
+  return t("Validation invalid");
+} });
 
 export const clientStatuses = ["active", "prospect", "inactive", "archived"] as const;
 export const projectStatuses = ["active", "development", "maintenance", "suspended", "archived"] as const;
 export const idSchema = z.uuid();
 
-const name = z.string().trim().min(1, "Enter a name.").max(160);
+const name = z.string().trim().min(1, t("Enter a name.")).max(160);
 const optional = (limit: number) => z.string().trim().max(limit).transform((value) => value || null);
 const url = z.string().trim().max(2048).refine((value) => {
   if (!value) return true;
@@ -15,14 +34,18 @@ const url = z.string().trim().max(2048).refine((value) => {
   } catch {
     return false;
   }
-}, "Enter an HTTP or HTTPS URL without sign-in credentials.").transform((value) => value || null);
+}, t("Enter an HTTP or HTTPS URL without sign-in credentials.")).transform((value) => value || null);
+
+const emailAddress = z.email();
+export const optionalEmail = z.string().trim().max(254)
+  .refine((value) => !value || emailAddress.safeParse(value).success, t("Enter a valid email address."))
+  .transform((value) => value || null);
 
 export const clientSchema = z.object({
   name,
   company: optional(160),
   contact_person: optional(160),
-  email: z.union([z.literal(""), z.email("Enter a valid email address.")])
-    .pipe(z.string().max(254)).transform((value) => value || null),
+  email: optionalEmail,
   phone: optional(80),
   website: url,
   country: optional(120),

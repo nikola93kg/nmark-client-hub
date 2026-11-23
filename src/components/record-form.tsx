@@ -1,15 +1,16 @@
 "use client";
 
+import { optionLabel, t } from "@/lib/localization";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type DefaultValues, type FieldValues, type Path, type Resolver } from "react-hook-form";
 import { Save } from "lucide-react";
-import type { z } from "zod";
+import { z } from "zod";
 import { saveRecord } from "@/app/(hub)/record-actions";
 import type { Client, ClientOption, Project } from "@/lib/database";
+import { projectTypeOptions, projectTypeSelection, projectTypeValue } from "@/lib/project-types";
 import { clientSchema, clientStatuses, projectSchema, projectStatuses } from "@/lib/validation";
-import { capitalize } from "./record-ui";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -28,9 +29,10 @@ type Field<T> = {
 };
 export type FieldGroup<T> = { title: string; fields: Field<T>[] };
 type ClientValues = z.input<typeof clientSchema>;
-type ProjectValues = z.input<typeof projectSchema>;
+const projectFormSchema = projectSchema.extend({ project_type_choice: z.string() });
+type ProjectValues = z.input<typeof projectFormSchema>;
 
-const statuses = (values: readonly string[]) => values.map((value) => ({ value, label: capitalize(value) }));
+const statuses = (values: readonly string[]) => values.map((value) => ({ value, label: optionLabel(value) }));
 
 export function RecordForm<T extends FieldValues>({ onSave, submitLabel, groups, defaultValues, resolver, cancelUrl }: {
   onSave: (values: T) => Promise<{ error?: string }>;
@@ -71,7 +73,7 @@ export function RecordForm<T extends FieldValues>({ onSave, submitLabel, groups,
                   <span><span id={labelId}>{field.label}</span>{!field.optional && <span className="required-mark" aria-hidden> *</span>}</span>
                   {field.options ? (
                     <select className="field-control" {...props}>
-                      <option value="" disabled={!field.optional}>{field.emptyLabel ?? `Choose ${field.label.toLowerCase()}`}</option>
+                      <option value="" disabled={!field.optional}>{field.emptyLabel ?? t(field.optional ? "No selection" : "Choose an option")}</option>
                       {field.options.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                     </select>
                   ) : field.kind === "textarea" ? (
@@ -89,30 +91,30 @@ export function RecordForm<T extends FieldValues>({ onSave, submitLabel, groups,
       ))}
       <div className="form-footer">
         {error && <p className="form-error" role="alert">{error}</p>}
-        <Button asChild variant="outline"><Link href={cancelUrl}>Cancel</Link></Button>
-        <Button disabled={pending}><Save size={16} aria-hidden /> {pending ? "Saving…" : submitLabel}</Button>
+        <Button asChild variant="outline"><Link href={cancelUrl}>{t("Cancel")}</Link></Button>
+        <Button disabled={pending}><Save size={16} aria-hidden /> {pending ? t("Saving…") : submitLabel}</Button>
       </div>
     </form>
   );
 }
 
 const clientGroups: FieldGroup<ClientValues>[] = [
-  { title: "Client information", fields: [
-    { name: "name", label: "Client name", maxLength: 160 },
-    { name: "company", label: "Company or business name", optional: true, maxLength: 160 },
-    { name: "status", label: "Status", options: statuses(clientStatuses) },
-    { name: "website", label: "Website", kind: "url", optional: true, maxLength: 2048 },
+  { title: t("Client information"), fields: [
+    { name: "name", label: t("Client name"), maxLength: 160 },
+    { name: "company", label: t("Company or business name"), optional: true, maxLength: 160 },
+    { name: "status", label: t("Status"), options: statuses(clientStatuses) },
+    { name: "website", label: t("Website"), kind: "url", optional: true, maxLength: 2048 },
   ] },
-  { title: "Contact and location", fields: [
-    { name: "contact_person", label: "Contact person", optional: true, maxLength: 160 },
-    { name: "email", label: "Email", kind: "email", optional: true, maxLength: 254 },
-    { name: "phone", label: "Phone", kind: "tel", optional: true, maxLength: 80 },
-    { name: "country", label: "Country", optional: true, maxLength: 120 },
-    { name: "city", label: "City", optional: true, maxLength: 120 },
-    { name: "address", label: "Address", optional: true, maxLength: 300 },
+  { title: t("Contact and location"), fields: [
+    { name: "contact_person", label: t("Contact person"), optional: true, maxLength: 160 },
+    { name: "email", label: t("Email"), kind: "email", optional: true, maxLength: 254 },
+    { name: "phone", label: t("Phone"), kind: "tel", optional: true, maxLength: 80 },
+    { name: "country", label: t("Country"), optional: true, maxLength: 120 },
+    { name: "city", label: t("City"), optional: true, maxLength: 120 },
+    { name: "address", label: t("Address"), optional: true, maxLength: 300 },
   ] },
-  { title: "Notes", fields: [
-    { name: "notes", label: "General notes", kind: "textarea", wide: true, optional: true, maxLength: 10000 },
+  { title: t("Notes"), fields: [
+    { name: "notes", label: t("General notes"), kind: "textarea", wide: true, optional: true, maxLength: 10000 },
   ] },
 ];
 
@@ -124,41 +126,51 @@ export function ClientForm({ client }: { client?: Client }) {
     status: client?.status ?? "prospect", notes: client?.notes ?? "",
   };
 
-  return <RecordForm onSave={(input) => saveRecord("clients", client?.id, input)} submitLabel="Save client" groups={clientGroups} defaultValues={values}
+  return <RecordForm onSave={(input) => saveRecord("clients", client?.id, input)} submitLabel={t("Save client")} groups={clientGroups} defaultValues={values}
     resolver={zodResolver(clientSchema, undefined, { raw: true })}
     cancelUrl={client ? `/clients/${client.id}` : "/clients"} />;
 }
 
 export function ProjectForm({ project, clients, clientId }: { project?: Project; clients: ClientOption[]; clientId?: string }) {
+  const { choice, previous } = projectTypeSelection(project?.project_type ?? null);
+  const typeOptions = previous
+    ? [...projectTypeOptions, { value: "legacy", label: t("Project type previous") }]
+    : projectTypeOptions;
   const groups: FieldGroup<ProjectValues>[] = [
-    { title: "Project information", fields: [
-      { name: "name", label: "Project name", maxLength: 160 },
-      { name: "client_id", label: "Client", options: clients.map(({ id, name, status }) => ({ value: id, label: status === "archived" ? `${name} (archived)` : name })) },
-      { name: "status", label: "Status", options: statuses(projectStatuses) },
-      { name: "project_type", label: "Project type", optional: true, maxLength: 120 },
-      { name: "technology_stack", label: "Technology stack", wide: true, optional: true, maxLength: 300 },
-      { name: "description", label: "Description", kind: "textarea", wide: true, optional: true, maxLength: 10000 },
+    { title: t("Project information"), fields: [
+      { name: "name", label: t("Project name"), maxLength: 160 },
+      { name: "client_id", label: t("Client"), options: clients.map(({ id, name, status }) => ({ value: id, label: status === "archived" ? t("{name} (archived)", { name }) : name })) },
+      { name: "status", label: t("Status"), options: statuses(projectStatuses) },
+      { name: "project_type_choice", label: t("Project type"), optional: true, emptyLabel: t("Project type not set"), options: typeOptions },
+      ...(previous ? [{
+        name: "project_type" as const, label: t("Change previous type"), optional: true, maxLength: 120,
+        hint: t("Previous project type hint"),
+      }] : []),
+      { name: "technology_stack", label: t("Technology stack"), wide: true, optional: true, maxLength: 300 },
+      { name: "description", label: t("Description"), kind: "textarea", wide: true, optional: true, maxLength: 10000 },
     ] },
-    { title: "Project links", fields: [
-      { name: "website", label: "Primary website", kind: "url", optional: true, maxLength: 2048 },
-      { name: "repository_url", label: "Repository URL", kind: "url", optional: true, maxLength: 2048 },
-      { name: "cms_url", label: "CMS or admin URL", kind: "url", optional: true, maxLength: 2048 },
-      { name: "production_url", label: "Production URL", kind: "url", optional: true, maxLength: 2048 },
-      { name: "staging_url", label: "Staging URL", kind: "url", optional: true, maxLength: 2048 },
+    { title: t("Project links"), fields: [
+      { name: "website", label: t("Primary website"), kind: "url", optional: true, maxLength: 2048 },
+      { name: "repository_url", label: t("Repository URL"), kind: "url", optional: true, maxLength: 2048 },
+      { name: "cms_url", label: t("CMS or admin URL"), kind: "url", optional: true, maxLength: 2048 },
+      { name: "production_url", label: t("Production URL"), kind: "url", optional: true, maxLength: 2048 },
+      { name: "staging_url", label: t("Staging URL"), kind: "url", optional: true, maxLength: 2048 },
     ] },
-    { title: "Technical notes", fields: [
-      { name: "technical_notes", label: "Technical notes", kind: "textarea", wide: true, optional: true, maxLength: 10000 },
+    { title: t("Technical notes"), fields: [
+      { name: "technical_notes", label: t("Technical notes"), kind: "textarea", wide: true, optional: true, maxLength: 10000 },
     ] },
   ];
   const values: ProjectValues = {
     name: project?.name ?? "", client_id: project?.client_id ?? clientId ?? "", status: project?.status ?? "development",
-    project_type: project?.project_type ?? "", technology_stack: project?.technology_stack ?? "",
+    project_type_choice: choice, project_type: previous, technology_stack: project?.technology_stack ?? "",
     description: project?.description ?? "", website: project?.website ?? "",
     repository_url: project?.repository_url ?? "", cms_url: project?.cms_url ?? "", production_url: project?.production_url ?? "",
     staging_url: project?.staging_url ?? "", technical_notes: project?.technical_notes ?? "",
   };
 
-  return <RecordForm onSave={(input) => saveRecord("projects", project?.id, input)} submitLabel="Save project" groups={groups} defaultValues={values}
-    resolver={zodResolver(projectSchema, undefined, { raw: true })}
+  return <RecordForm onSave={(input) => saveRecord("projects", project?.id, {
+      ...input, project_type: projectTypeValue(input.project_type_choice, input.project_type ?? ""),
+    })} submitLabel={t("Save project")} groups={groups} defaultValues={values}
+    resolver={zodResolver(projectFormSchema, undefined, { raw: true })}
     cancelUrl={project ? `/projects/${project.id}` : clientId ? `/clients/${clientId}` : "/projects"} />;
 }

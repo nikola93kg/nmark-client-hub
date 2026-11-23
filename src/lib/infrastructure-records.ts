@@ -1,3 +1,4 @@
+import { optionLabel, t } from "@/lib/localization";
 import "server-only";
 import { requireAdmin } from "./auth";
 import { readDemo, changeDemo } from "./demo-data";
@@ -9,17 +10,17 @@ import type { AssetAccount, AssetProject, AssetView, Domain, DomainView, Hosting
 import { pageSize } from "./validation";
 
 const projectEmbed = "projects!inner(id,name,clients!inner(id,name))";
-const accountFields = "id,label,archived_at,service_providers!inner(id,name)";
+const accountFields = "id,label,archived_at,login_url,vault_item_id,service_providers!inner(id,name,dashboard_url)";
 const domainFields = "id,project_id,registrar_account_id,name,registered_on,expires_on,renewal_price,currency,auto_renew,status,renewal_responsibility,notes,created_at,updated_at";
 const hostingFields = "id,project_id,hosting_account_id,hosting_type,plan_name,server_notes,billing_cycle,renews_on,renewal_price,currency,auto_renew,status,renewal_responsibility,notes,created_at,updated_at";
 const domainSelect = `${domainFields},${projectEmbed},service_accounts(${accountFields})` as const;
 const hostingSelect = `${hostingFields},${projectEmbed},service_accounts!inner(${accountFields})` as const;
 const historyFields = "id,domain_id,hosting_service_id,renewed_on,period_start,period_end,paid_amount,currency,paid_on,payment_status,next_renewal_on,notes,created_at";
-const missing = { error: "This record is no longer available." };
-const nameConflict = { error: "A non-archived record already exists for this domain." };
-const referenceError = { error: "The selected project or service account is no longer available." };
-const historyBlocked = { error: "This record has renewal history. Archive it to preserve its history." };
-const renewalConflict = { error: "This submission was already used. Reload the renewal form to record another event." };
+const missing = { error: t("This record is no longer available.") };
+const nameConflict = { error: t("A non-archived record already exists for this domain.") };
+const referenceError = { error: t("The selected project or service account is no longer available.") };
+const historyBlocked = { error: t("This record has renewal history. Archive it to preserve its history.") };
+const renewalConflict = { error: t("This submission was already used. Reload the renewal form to record another event.") };
 const isForeignKey = (code?: string) => code === "23503" || code === "23001";
 type Result = { error?: string };
 type SaveResult = { id: string } | { error: string };
@@ -30,9 +31,9 @@ const hostingView = (row: Omit<HostingView, "kind">): HostingView => ({ ...row, 
 function demoViews(data: DemoData) {
   const clients = new Map(data.clients.map(({ id, name }) => [id, { id, name }]));
   const projects = new Map(data.projects.map(({ id, name, client_id }) => [id, { id, name, clients: clients.get(client_id)! } satisfies AssetProject]));
-  const providers = new Map(data.providers.map(({ id, name }) => [id, { id, name }]));
-  const accounts = new Map(data.accounts.map(({ id, label, archived_at, provider_id }) =>
-    [id, { id, label, archived_at, service_providers: providers.get(provider_id)! } satisfies AssetAccount]));
+  const providers = new Map(data.providers.map(({ id, name, dashboard_url }) => [id, { id, name, dashboard_url }]));
+  const accounts = new Map(data.accounts.map(({ id, label, archived_at, provider_id, login_url, vault_item_id }) =>
+    [id, { id, label, archived_at, login_url, vault_item_id, service_providers: providers.get(provider_id)! } satisfies AssetAccount]));
   return {
     domains: data.domains.map((row) => domainView({
       ...row, projects: projects.get(row.project_id)!, service_accounts: accounts.get(row.registrar_account_id ?? "") ?? null,
@@ -73,7 +74,7 @@ export async function listAssets(kind: AssetKind, filters: AssetFilters): Promis
     if (filters.q) query.filter("name", "imatch", `***=${filters.q}`);
     const { data, error, count } = await query.order(sort, { ascending }).order("id").range(start, start + pageSize - 1);
     if (error?.code === "PGRST103" && start) return { rows: [], count: 0 };
-    if (error) throw new Error("Could not load domains.");
+    if (error) throw new Error(t("Could not load domains."));
     return { rows: data.map(domainView), count: count ?? 0 };
   }
   const query = session.supabase.from("hosting_services").select(hostingSelect, { count: "exact" });
@@ -84,7 +85,7 @@ export async function listAssets(kind: AssetKind, filters: AssetFilters): Promis
   const { data, error, count } = await query.order(sort === "name" ? "plan_name" : sort, { ascending, nullsFirst: false })
     .order("id").range(start, start + pageSize - 1);
   if (error?.code === "PGRST103" && start) return { rows: [], count: 0 };
-  if (error) throw new Error("Could not load hosting services.");
+  if (error) throw new Error(t("Could not load hosting services."));
   return { rows: data.map(hostingView), count: count ?? 0 };
 }
 
@@ -93,11 +94,11 @@ export async function getAsset(kind: AssetKind, id: string): Promise<AssetView |
   if (session.kind === "demo") return demoViews(readDemo())[kind].find((row) => row.id === id) ?? null;
   if (kind === "domains") {
     const { data, error } = await session.supabase.from("domains").select(domainSelect).eq("id", id).maybeSingle();
-    if (error) throw new Error("Could not load this domain.");
+    if (error) throw new Error(t("Could not load this domain."));
     return data ? domainView(data) : null;
   }
   const { data, error } = await session.supabase.from("hosting_services").select(hostingSelect).eq("id", id).maybeSingle();
-  if (error) throw new Error("Could not load this hosting service.");
+  if (error) throw new Error(t("Could not load this hosting service."));
   return data ? hostingView(data) : null;
 }
 
@@ -114,9 +115,9 @@ export async function assetOptions() {
   }
   const [projects, accounts] = await Promise.all([
     readAll((start, end) => session.supabase.from("projects").select("id,name").order("name").order("id").range(start, end),
-      "Could not load projects."),
+      t("Could not load projects.")),
     readAll((start, end) => session.supabase.from("service_accounts").select("id,label,archived_at,service_providers!inner(name)")
-      .order("label").order("id").range(start, end), "Could not load service accounts."),
+      .order("label").order("id").range(start, end), t("Could not load service accounts.")),
   ]);
   return { projects, accounts: accounts.map(({ id, label, archived_at, service_providers }) => ({ id, label, archived_at, provider: service_providers.name })) };
 }
@@ -135,12 +136,12 @@ async function readAssets(projectId?: string) {
       const query = session.supabase.from("domains").select(domainSelect);
       if (projectId) query.eq("project_id", projectId);
       return query.order("name").order("id").range(start, end);
-    }, "Could not load domains."),
+    }, t("Could not load domains.")),
     readAll((start, end) => {
       const query = session.supabase.from("hosting_services").select(hostingSelect);
       if (projectId) query.eq("project_id", projectId);
       return query.order("plan_name").order("id").range(start, end);
-    }, "Could not load hosting services."),
+    }, t("Could not load hosting services.")),
   ]);
   return { domains: domains.map(domainView), hosting: hosting.map(hostingView) };
 }
@@ -150,7 +151,7 @@ export async function projectAssets(projectId: string) {
 }
 
 export function assetName(row: AssetView) {
-  return row.kind === "domains" ? row.name : row.plan_name || row.hosting_type;
+  return row.kind === "domains" ? row.name : row.plan_name || optionLabel(row.hosting_type);
 }
 export function assetDate(row: AssetView) {
   return row.kind === "domains" ? row.expires_on : row.renews_on;
@@ -184,7 +185,7 @@ export async function paidRenewals() {
   if (session.kind === "demo") return readDemo().renewalHistory.filter(({ payment_status }) => payment_status === "paid")
     .map(({ paid_amount, currency }) => ({ amount: paid_amount, currency }));
   const rows = await readAll((start, end) => session.supabase.from("renewal_history").select("paid_amount,currency")
-    .eq("payment_status", "paid").order("id").range(start, end), "Could not load recorded payments.");
+    .eq("payment_status", "paid").order("id").range(start, end), t("Could not load recorded payments."));
   return rows.map(({ paid_amount, currency }) => ({ amount: paid_amount, currency }));
 }
 
@@ -194,7 +195,7 @@ export async function renewalHistory(kind: AssetKind, id: string): Promise<Renew
   if (session.kind === "demo") return readDemo().renewalHistory.filter((row) => row[column] === id)
     .sort((a, b) => b.renewed_on.localeCompare(a.renewed_on) || a.id.localeCompare(b.id));
   return readAll((start, end) => session.supabase.from("renewal_history").select(historyFields)
-    .eq(column, id).order("renewed_on", { ascending: false }).order("id").range(start, end), "Could not load renewal history.");
+    .eq(column, id).order("renewed_on", { ascending: false }).order("id").range(start, end), t("Could not load renewal history."));
 }
 
 export async function saveDomain(id: string | undefined, input: DomainInput): Promise<SaveResult> {
@@ -211,7 +212,7 @@ export async function saveDomain(id: string | undefined, input: DomainInput): Pr
   const { data, error } = await (id ? table.update(input).eq("id", id) : table.insert(input)).select("id").maybeSingle();
   if (error?.code === "23505") return nameConflict;
   if (isForeignKey(error?.code)) return referenceError;
-  return error ? { error: "Could not save the domain. Try again." } : data ?? missing;
+  return error ? { error: t("Could not save the domain. Try again.") } : data ?? missing;
 }
 
 export async function saveHosting(id: string | undefined, input: HostingInput): Promise<SaveResult> {
@@ -224,7 +225,7 @@ export async function saveHosting(id: string | undefined, input: HostingInput): 
   const table = session.supabase.from("hosting_services");
   const { data, error } = await (id ? table.update(input).eq("id", id) : table.insert(input)).select("id").maybeSingle();
   if (isForeignKey(error?.code)) return referenceError;
-  return error ? { error: "Could not save the hosting service. Try again." } : data ?? missing;
+  return error ? { error: t("Could not save the hosting service. Try again.") } : data ?? missing;
 }
 
 function demoReferences(data: DemoData, projectId: string, accountId: string | null) {
@@ -251,7 +252,7 @@ export async function changeAsset(kind: AssetKind, id: string, operation: "archi
   const query = operation === "archive" ? table.update({ status: "archived" }) : table.delete();
   const { data, error } = await query.eq("id", id).select("id").maybeSingle();
   if (isForeignKey(error?.code)) return historyBlocked;
-  if (error) return { error: `Could not ${operation} this record. Try again.` };
+  if (error) return { error: t("The action could not be completed. Try again.") };
   return data ? {} : missing;
 }
 
@@ -267,7 +268,7 @@ export async function addRenewal(kind: AssetKind, id: string, eventId: string, i
       return same ? {} : renewalConflict;
     }
     if (input.next_renewal_on && "registered_on" in row && row.registered_on && input.next_renewal_on < row.registered_on) {
-      return { error: "The next expiration date cannot be before domain registration." };
+      return { error: t("The next expiration date cannot be before domain registration.") };
     }
     const created_at = new Date().toISOString();
     data.renewalHistory.push({ ...input, ...targets, id: eventId, created_at });
@@ -286,6 +287,6 @@ export async function addRenewal(kind: AssetKind, id: string, eventId: string, i
   });
   if (isForeignKey(error?.code)) return missing;
   if (error?.code === "23505") return renewalConflict;
-  if (error?.code === "23514") return { error: "Check the renewal and payment dates and amounts." };
-  return error ? { error: "Could not record this renewal. Try again." } : {};
+  if (error?.code === "23514") return { error: t("Check the renewal and payment dates and amounts.") };
+  return error ? { error: t("Could not record this renewal. Try again.") } : {};
 }

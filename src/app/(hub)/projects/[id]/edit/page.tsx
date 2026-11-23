@@ -1,10 +1,11 @@
+import { t } from "@/lib/localization";
 import { notFound } from "next/navigation";
 import { ProjectForm } from "@/components/record-form";
 import { BackLink, Heading } from "@/components/record-ui";
 import { clientOptions, getProject } from "@/lib/records";
 import { idSchema } from "@/lib/validation";
 
-export const metadata = { title: "Edit project" };
+export const metadata = { title: t("Edit project") };
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,7 +16,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   return (
     <>
       <BackLink href={`/projects/${id}`}>{project.name}</BackLink>
-      <Heading title="Edit project" />
+      <Heading title={t("Edit project")} />
       <ProjectForm project={project} clients={clients} />
     </>
   );

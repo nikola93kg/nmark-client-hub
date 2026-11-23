@@ -1,5 +1,6 @@
 import type { ClientInput, ProjectInput } from "./validation";
 
+import type { ServiceKind } from "./project-services";
 import type { DomainInput, HostingInput, RenewalInput } from "./infrastructure-validation";
 import type { AccountInput, AssociationInput, ProviderInput } from "./service-validation";
 
@@ -11,9 +12,19 @@ export type ClientOption = Pick<Client, "id" | "name" | "status">;
 
 export type ServiceProvider = ProviderInput & Stamps;
 export type ServiceAccount = AccountInput & Stamps & { archived_at: string | null };
-export type ProjectAccount = AssociationInput & Stamps & { project_id: string };
+export type ProjectServiceAssociation = Omit<AssociationInput, "service_account_id"> & {
+  service_account_id: string | null;
+  provider_id?: string | null;
+  service_kind?: ServiceKind | null;
+  destination_email?: string | null;
+  routing_notes?: string | null;
+};
+export type ProjectAccount = ProjectServiceAssociation & Stamps & { project_id: string };
 export type ListedAccount = ServiceAccount & { service_providers: Pick<ServiceProvider, "id" | "name" | "dashboard_url"> };
-export type ProjectAccountView = ProjectAccount & { service_accounts: ListedAccount };
+export type ProjectAccountView = ProjectAccount & {
+  service_accounts: ListedAccount | null;
+  service_providers: Pick<ServiceProvider, "id" | "name" | "dashboard_url"> | null;
+};
 export type AccountProjectView = ProjectAccount & { projects: Pick<Project, "id" | "name" | "status"> };
 
 export type Domain = Omit<DomainInput, "renewal_responsibility"> & Stamps & {
@@ -27,8 +38,8 @@ export type Renewal = RenewalInput & {
   id: string; domain_id: string | null; hosting_service_id: string | null; created_at: string;
 };
 export type AssetProject = Pick<Project, "id" | "name"> & { clients: Pick<Client, "id" | "name"> };
-export type AssetAccount = Pick<ServiceAccount, "id" | "label" | "archived_at"> & {
-  service_providers: Pick<ServiceProvider, "id" | "name">;
+export type AssetAccount = Pick<ServiceAccount, "id" | "label" | "archived_at" | "vault_item_id" | "login_url"> & {
+  service_providers: Pick<ServiceProvider, "id" | "name" | "dashboard_url">;
 };
 export type DomainView = Domain & { kind: "domains"; projects: AssetProject; service_accounts: AssetAccount | null };
 export type HostingView = Hosting & { kind: "hosting"; projects: AssetProject; service_accounts: AssetAccount };
@@ -63,7 +74,7 @@ export type Database = {
           referencedColumns: ["id"];
         }];
       };
-      project_service_accounts: Table<AssociationInput & { project_id: string }, ProjectAccount> & {
+      project_service_accounts: Table<ProjectServiceAssociation & { project_id: string }, ProjectAccount> & {
         Relationships: [{
           foreignKeyName: "project_service_accounts_project_id_fkey";
           columns: ["project_id"];
@@ -75,6 +86,12 @@ export type Database = {
           columns: ["service_account_id"];
           isOneToOne: false;
           referencedRelation: "service_accounts";
+          referencedColumns: ["id"];
+        }, {
+          foreignKeyName: "project_service_accounts_provider_id_fkey";
+          columns: ["provider_id"];
+          isOneToOne: false;
+          referencedRelation: "service_providers";
           referencedColumns: ["id"];
         }];
       };

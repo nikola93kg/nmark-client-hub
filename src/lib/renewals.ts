@@ -1,3 +1,4 @@
+import { locale, t } from "@/lib/localization";
 import type { AssetKind } from "./infrastructure-validation";
 
 export const defaultBusinessTimezone = "Europe/Belgrade";
@@ -31,17 +32,17 @@ export const dateOffset = (date: string, days: number) => new Date(dateTimestamp
 
 export function calendarLabel(date: string | null) {
   const timestamp = date ? dateTimestamp(date) : NaN;
-  return Number.isFinite(timestamp) ? new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", dateStyle: "medium" }).format(timestamp) : "Unknown";
+  return Number.isFinite(timestamp) ? new Intl.DateTimeFormat(locale, { timeZone: "UTC", dateStyle: "medium" }).format(timestamp) : t("Unknown");
 }
 
 export const renewalBuckets = [
-  ["overdue", "Overdue"],
-  ["7", "Due within 7 days"],
-  ["14", "Due in 8–14 days"],
-  ["30", "Due in 15–30 days"],
-  ["60", "Due in 31–60 days"],
-  ["later", "Upcoming later"],
-  ["unknown", "Unknown renewal dates"],
+  ["overdue", t("Overdue")],
+  ["7", t("Due within 7 days")],
+  ["14", t("Due in 8–14 days")],
+  ["30", t("Due in 15–30 days")],
+  ["60", t("Due in 31–60 days")],
+  ["later", t("Upcoming later")],
+  ["unknown", t("Unknown renewal dates")],
 ] as const;
 export type RenewalBucket = (typeof renewalBuckets)[number][0];
 
@@ -58,11 +59,11 @@ export function renewalBucket(days: number | null): RenewalBucket {
 export const tracksRenewal = (status: string) => status !== "archived" && status !== "inactive";
 
 export function renewalTiming(days: number | null) {
-  if (days === null) return "Unknown date";
-  if (days === 0) return "Due today";
-  if (days === -1) return "1 day overdue";
-  if (days < 0) return `${-days} days overdue`;
-  return days === 1 ? "Due in 1 day" : `Due in ${days} days`;
+  if (days === null) return t("Unknown date");
+  if (days === 0) return t("Due today");
+  if (days === -1) return t("1 day overdue");
+  if (days < 0) return t("{days} days overdue", { days: -days });
+  return days === 1 ? t("Due in 1 day") : t("Due in {days} days", { days });
 }
 
 type Money = { amount: number | null; currency: string | null };
@@ -79,11 +80,11 @@ export function currencyTotals(values: Iterable<Money>): CurrencyTotal[] {
 }
 
 export function moneyLabel(amount: number | null, currency: string | null) {
-  return amount === null || !Number.isFinite(amount) || !currency ? "Unknown" : currencyTotalLabel({ currency, cents: BigInt(Math.round(amount * 100)) });
+  return amount === null || !Number.isFinite(amount) || !currency ? t("Unknown") : currencyTotalLabel({ currency, cents: BigInt(Math.round(amount * 100)) });
 }
 
 export function currencyTotalLabel({ currency, cents }: CurrencyTotal) {
-  return `${currency} ${(cents / 100n).toLocaleString("en-GB")}.${String(cents % 100n).padStart(2, "0")}`;
+  return `${currency} ${(cents / 100n).toLocaleString(locale, { useGrouping: true })},${String(cents % 100n).padStart(2, "0")}`;
 }
 
 type Target = { id: string; name: string };
@@ -94,7 +95,7 @@ export function expectedCosts(rows: CostRow[]) {
   const by = (key: "client" | "provider") => {
     const groups = new Map<string, { name: string; rows: CostRow[] }>();
     for (const row of upcoming) {
-      const { id, name } = row[key] ?? { id: "", name: "Provider unknown" };
+      const { id, name } = row[key] ?? { id: "", name: t("Provider unknown") };
       const group = groups.get(id) ?? { name, rows: [] };
       group.rows.push(row);
       groups.set(id, group);

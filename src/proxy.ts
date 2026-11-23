@@ -1,10 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
+import { t } from "@/lib/localization";
 import { NextResponse, type NextRequest } from "next/server";
 import { cookieOptions, isDemoMode, supabaseConfig } from "@/lib/env";
 
 export async function proxy(request: NextRequest) {
   if (isDemoMode() && !/^127\.0\.0\.1(?::\d+)?$/.test(request.headers.get("host") ?? "")) {
-    return new NextResponse("The local demo is available on 127.0.0.1.", { status: 403 });
+    return new NextResponse(t("The local demo is available on 127.0.0.1."), { status: 403 });
   }
 
   const headers = new Headers(request.headers);

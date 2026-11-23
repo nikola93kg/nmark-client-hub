@@ -1,3 +1,4 @@
+import { t } from "@/lib/localization";
 import "server-only";
 import { saveDemoRecord } from "./demo-store";
 import { requireAdmin } from "./auth";
@@ -37,7 +38,7 @@ export async function listClients(filters: ListFilters<Client["status"]>): Promi
     .order(orderColumns[filters.sort], { ascending: filters.sort === "name" })
     .order("id").range(start, start + pageSize - 1);
   if (error?.code === "PGRST103" && filters.page > 1) return { rows: [], count: 0 };
-  if (error) throw new Error("Could not load clients.");
+  if (error) throw new Error(t("Could not load clients."));
   return { rows: data, count: count ?? 0 };
 }
 
@@ -67,7 +68,7 @@ export async function listProjects(filters: ListFilters<Project["status"]>, clie
     .order(orderColumns[filters.sort], { ascending: filters.sort === "name" })
     .order("id").range(start, start + pageSize - 1);
   if (error?.code === "PGRST103" && filters.page > 1) return { rows: [], count: 0 };
-  if (error) throw new Error("Could not load projects.");
+  if (error) throw new Error(t("Could not load projects."));
   return { rows: data, count: count ?? 0 };
 }
 
@@ -75,7 +76,7 @@ export async function getClient(id: string): Promise<Client | null> {
   const session = await requireAdmin();
   if (session.kind === "demo") return readDemo().clients.find((row) => row.id === id) ?? null;
   const { data, error } = await session.supabase.from("clients").select(clientColumns).eq("id", id).maybeSingle();
-  if (error) throw new Error("Could not load the client.");
+  if (error) throw new Error(t("Could not load the client."));
   return data;
 }
 
@@ -88,7 +89,7 @@ export async function getProject(id: string): Promise<ListedProject | null> {
     return project && client ? { ...project, clients: { id: client.id, name: client.name } } : null;
   }
   const { data, error } = await session.supabase.from("projects").select(listedProjectColumns).eq("id", id).maybeSingle();
-  if (error) throw new Error("Could not load the project.");
+  if (error) throw new Error(t("Could not load the project."));
   return data;
 }
 
@@ -105,7 +106,7 @@ export async function clientOptions() {
     const { data, error } = await session.supabase.from("clients").select("id,name,status")
       .order("name").order("id").range(start, start + batchSize - 1);
     if (error?.code === "PGRST103" && start > 0) return options;
-    if (error) throw new Error("Could not load client options.");
+    if (error) throw new Error(t("Could not load client options."));
     options.push(...data);
     if (data.length < batchSize) return options;
   }
@@ -132,7 +133,7 @@ export async function dashboardData() {
     supabase.from("projects").select("id", { head: true, count: "exact" }).eq("status", "active"),
     recent,
   ]);
-  if (total.error || active.error || projects.error) throw new Error("Could not load dashboard totals.");
+  if (total.error || active.error || projects.error) throw new Error(t("Could not load dashboard totals."));
   return {
     totalClients: total.count ?? 0, activeClients: active.count ?? 0,
     activeProjects: projects.count ?? 0, recent: activity.rows.slice(0, 5),
@@ -144,8 +145,8 @@ export async function saveClient(id: string | undefined, input: ClientInput) {
   if (session.kind === "demo") return changeDemo((data) => saveDemoRecord<Client>(data.clients, id, input));
   const table = session.supabase.from("clients");
   const result = await (id ? table.update(input).eq("id", id) : table.insert(input)).select("id").maybeSingle();
-  if (result.error) return { error: "Could not save the client. Try again." };
-  return result.data ?? { error: "This client is no longer available." };
+  if (result.error) return { error: t("Could not save the client. Try again.") };
+  return result.data ?? { error: t("This client is no longer available.") };
 }
 
 export async function saveProject(id: string | undefined, input: ProjectInput) {
@@ -153,34 +154,33 @@ export async function saveProject(id: string | undefined, input: ProjectInput) {
   if (session.kind === "demo") {
     return changeDemo((data) => data.clients.some(({ id }) => id === input.client_id)
       ? saveDemoRecord<Project>(data.projects, id, input)
-      : { error: "The selected client is no longer available." });
+      : { error: t("The selected client is no longer available.") });
   }
 
   const table = session.supabase.from("projects");
   const result = await (id ? table.update(input).eq("id", id) : table.insert(input)).select("id").maybeSingle();
-  if (result.error?.code === "23503") return { error: "The selected client is no longer available." };
-  if (result.error) return { error: "Could not save the project. Try again." };
-  return result.data ?? { error: "This project is no longer available." };
+  if (result.error?.code === "23503") return { error: t("The selected client is no longer available.") };
+  if (result.error) return { error: t("Could not save the project. Try again.") };
+  return result.data ?? { error: t("This project is no longer available.") };
 }
 
 export async function changeRecord(tableName: "clients" | "projects", id: string, action: "archive" | "delete") {
   const session = await requireAdmin();
-  const label = tableName === "clients" ? "client" : "project";
   if (session.kind === "demo") {
     return changeDemo((data) => {
       const rows = data[tableName];
       const index = rows.findIndex((row) => row.id === id);
-      if (index < 0) return { error: "This record is no longer available." };
+      if (index < 0) return { error: t("This record is no longer available.") };
       if (action === "archive") {
         rows[index].status = "archived";
         rows[index].updated_at = new Date().toISOString();
       } else {
         if (tableName === "projects" && (data.projectAccounts.some((row) => row.project_id === id) ||
             data.domains.some((row) => row.project_id === id) || data.hosting.some((row) => row.project_id === id))) {
-          return { error: "This project has related records. Remove the links before deleting the project." };
+          return { error: t("This project has related records. Remove the links before deleting the project.") };
         }
         if (tableName === "clients" && data.projects.some((row) => row.client_id === id)) {
-          return { error: "This client still has projects. Move or delete them before deleting the client." };
+          return { error: t("This client still has projects. Move or delete them before deleting the client.") };
         }
         rows.splice(index, 1);
       }
@@ -193,9 +193,9 @@ export async function changeRecord(tableName: "clients" | "projects", id: string
   const { data, error } = await query.eq("id", id).select("id").maybeSingle();
   if (error && ["23001", "23503"].includes(error.code)) return {
     error: tableName === "clients"
-      ? "This client still has projects. Move or delete them before deleting the client."
-      : "This project has related records. Remove the links before deleting the project.",
+      ? t("This client still has projects. Move or delete them before deleting the client.")
+      : t("This project has related records. Remove the links before deleting the project."),
   };
-  if (error) return { error: `Could not ${action} the ${label}. Try again.` };
-  return data ? {} : { error: "This record is no longer available." };
+  if (error) return { error: t("The action could not be completed. Try again.") };
+  return data ? {} : { error: t("This record is no longer available.") };
 }

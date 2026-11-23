@@ -1,3 +1,4 @@
+import { t } from "@/lib/localization";
 import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
@@ -16,7 +17,7 @@ type HubSession =
 export const hubSession = cache(async (): Promise<HubSession> => {
   if (isDemoMode()) {
     return (await cookies()).get(demoCookie)?.value === "active"
-      ? { kind: "demo", email: "Local demo" }
+      ? { kind: "demo", email: t("Local demo") }
       : { kind: "signed-out" };
   }
 
@@ -26,11 +27,11 @@ export const hubSession = cache(async (): Promise<HubSession> => {
   const claims = data?.claims;
   if (error || !claims?.sub) return { kind: "signed-out" };
   const allowed = await supabase.rpc("is_hub_admin");
-  if (allowed.error) throw new Error("Could not verify workspace access.");
+  if (allowed.error) throw new Error(t("Could not verify workspace access."));
   if (!allowed.data) return { kind: "denied" };
   return {
     kind: claims.aal === "aal2" ? "admin" : "mfa",
-    email: typeof claims.email === "string" ? claims.email : "Administrator",
+    email: typeof claims.email === "string" ? claims.email : t("Administrator"),
     supabase,
   };
 });

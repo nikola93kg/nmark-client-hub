@@ -1,8 +1,9 @@
+import { t } from "@/lib/localization";
 import { z } from "zod";
-import { idSchema, listFilters, type ListFilters, type QueryParams } from "./validation";
+import { idSchema, listFilters, optionalEmail, type ListFilters, type QueryParams } from "./validation";
 
 export const providerCategories = [
-  "Hosting", "Deployment", "Domain Registrar", "DNS / CDN", "Email", "Transactional Email",
+  "Hosting", "Deployment", "Domain Registrar", "DNS / CDN", t("Email"), "Transactional Email",
   "Source Control", "Database", "CMS", "Analytics", "Marketing", "Other",
 ] as const;
 
@@ -31,11 +32,11 @@ export function safeServiceUrl(value: string | null) {
 }
 
 const optionalUrl = z.string().trim().max(2048)
-  .refine((value) => !value || serviceUrl(value) !== null, "Enter a plain HTTP or HTTPS URL without credentials, query parameters or fragments.")
+  .refine((value) => !value || serviceUrl(value) !== null, t("Enter a plain HTTP or HTTPS URL without credentials, query parameters or fragments."))
   .transform((value) => value || null);
 
 export const vaultItemSchema = z.string().trim()
-  .refine((value) => !value || idSchema.safeParse(value).success, "Enter the Vault item UUID.")
+  .refine((value) => !value || idSchema.safeParse(value).success, t("Enter the Vault item UUID."))
   .transform((value) => value ? value.toLowerCase() : null);
 
 export function vaultItemUrl(base: string | undefined, itemId: string | null): string | null {
@@ -48,17 +49,16 @@ export function vaultItemUrl(base: string | undefined, itemId: string | null): s
 }
 
 export const providerSchema = z.object({
-  name: z.string().trim().min(1, "Enter a provider name.").max(160),
+  name: z.string().trim().min(1, t("Enter a provider name.")).max(160),
   category: z.enum(providerCategories),
   website_url: optionalUrl,
   dashboard_url: optionalUrl,
 });
 
 export const accountSchema = z.object({
-  provider_id: z.uuid("Choose a service provider."),
-  label: z.string().trim().min(1, "Enter an account label.").max(160),
-  email: z.string().trim().max(254).pipe(z.union([z.literal(""), z.email("Enter a valid email address.")]))
-    .transform((value) => value || null),
+  provider_id: z.uuid(t("Choose a service provider.")),
+  label: z.string().trim().min(1, t("Enter an account label.")).max(160),
+  email: optionalEmail,
   username: optional(160),
   login_url: optionalUrl,
   vault_item_id: vaultItemSchema,
@@ -67,8 +67,8 @@ export const accountSchema = z.object({
 });
 
 export const associationSchema = z.object({
-  service_account_id: z.uuid("Choose a service account."),
-  purpose: z.string().trim().min(1, "Enter the purpose of this connection.").max(160),
+  service_account_id: z.uuid(t("Choose a service account.")),
+  purpose: z.string().trim().min(1, t("Enter the purpose of this connection.")).max(160),
   notes: optional(10000),
 });
 

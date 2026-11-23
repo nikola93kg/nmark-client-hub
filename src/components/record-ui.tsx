@@ -1,3 +1,4 @@
+import { optionLabel, t } from "@/lib/localization";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight, Search } from "lucide-react";
@@ -6,7 +7,7 @@ import { Input } from "./ui/input";
 import { pageSize, type ListFilters } from "@/lib/validation";
 
 export function StatusBadge({ status }: { status: string }) {
-  return <span className="status-badge" data-status={status}>{status}</span>;
+  return <span className="status-badge" data-status={status}>{optionLabel(status)}</span>;
 }
 
 export function Heading({ title, description, children }: { title: string; description?: string; children?: ReactNode }) {
@@ -30,31 +31,36 @@ export function ListToolbar({ path, filters, statuses, collection, children, ext
   children?: ReactNode;
   extraFiltered?: boolean;
 }) {
+  const searches = {
+    clients: "Search clients", projects: "Search projects", "service accounts": "Search service accounts",
+    domains: "Search domains", hosting: "Search hosting",
+  } as const;
+  const search = t(searches[collection]);
   return (
-    <form className="list-toolbar" method="get" action={path} role="search" aria-label={`Filter ${collection}`}>
+    <form className="list-toolbar" method="get" action={path} role="search" aria-label={t("Filter records")}>
       <label className="search-field">
         <Search size={17} aria-hidden />
-        <Input type="search" name="q" aria-label={`Search ${collection}`} placeholder={`Search ${collection}…`}
+        <Input type="search" name="q" aria-label={search} placeholder={search + "…"}
           defaultValue={filters.q} maxLength={120} />
       </label>
       <div className="toolbar-field">
-        <select aria-label="Status" name="status" className="field-control" defaultValue={filters.status}>
-          <option value="">All statuses</option>
-          {statuses.map((status) => <option key={status} value={status}>{capitalize(status)}</option>)}
+        <select aria-label={t("Status")} name="status" className="field-control" defaultValue={filters.status}>
+          <option value="">{t("All statuses")}</option>
+          {statuses.map((status) => <option key={status} value={status}>{optionLabel(status)}</option>)}
         </select>
       </div>
       <div className="toolbar-field">
-        <select aria-label="Sort" name="sort" className="field-control" defaultValue={filters.sort}>
-          <option value="updated">Recently updated</option>
-          <option value="created">Newest first</option>
-          <option value="name">Name A–Z</option>
-          <option value="name-desc">Name Z–A</option>
+        <select aria-label={t("Sort")} name="sort" className="field-control" defaultValue={filters.sort}>
+          <option value="updated">{t("Recently updated")}</option>
+          <option value="created">{t("Newest first")}</option>
+          <option value="name">{t("Name A–Z")}</option>
+          <option value="name-desc">{t("Name Z–A")}</option>
         </select>
       </div>
       {children}
-      <Button variant="outline">Apply</Button>
+      <Button variant="outline">{t("Apply")}</Button>
       {(filters.q || filters.status || filters.sort !== "updated" || extraFiltered) && (
-        <Link className="text-link" href={path}>Reset</Link>
+        <Link className="text-link" href={path}>{t("Reset")}</Link>
       )}
     </form>
   );
@@ -77,11 +83,11 @@ export function Pagination({ path, filters, count, extra }: {
 
   return (
     <div className="pagination">
-      <span>{page > pages ? "Page out of range" : count ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, count)} of ${count}` : "0 records"}</span>
+      <span>{page > pages ? t("Page out of range") : count ? t("{start}–{end} of {count}", { start: (page - 1) * pageSize + 1, end: Math.min(page * pageSize, count), count }) : t("0 records")}</span>
       {pages > 1 || page > 1 ? (
-        <nav aria-label="Pagination">
-          {page > 1 && <Button asChild variant="outline"><Link href={link(page > pages ? 1 : page - 1)}><ChevronLeft size={16} />{page > pages ? "First page" : "Previous"}</Link></Button>}
-          {page < pages && <Button asChild variant="outline"><Link href={link(page + 1)}>Next <ChevronRight size={16} /></Link></Button>}
+        <nav aria-label={t("Pagination")}>
+          {page > 1 && <Button asChild variant="outline"><Link href={link(page > pages ? 1 : page - 1)}><ChevronLeft size={16} />{page > pages ? t("First page") : t("Previous")}</Link></Button>}
+          {page < pages && <Button asChild variant="outline"><Link href={link(page + 1)}>{t("Next")} <ChevronRight size={16} /></Link></Button>}
         </nav>
       ) : null}
     </div>
@@ -103,8 +109,4 @@ export function DetailGrid({ items }: { items: [string, ReactNode][] }) {
 export function ExternalUrl({ url }: { url: string | null | undefined }) {
   if (!url || !/^https?:\/\//i.test(url)) return null;
   return <a className="text-link" href={url} target="_blank" rel="noopener noreferrer">{url}</a>;
-}
-
-export function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }

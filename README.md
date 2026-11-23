@@ -57,3 +57,9 @@ Open **Renewals** to view overdue, upcoming and unknown dates. The schedule excl
 Use **Record renewal** from a domain or hosting detail page. History is append-only. Supply **Next renewal date** to update the schedule in the same transaction. Records with history can be archived. Create fresh demo records to try these flows with fictional dates and prices.
 
 For an existing Supabase project, apply `20261123020000_domains_hosting.sql` after the Phase 1 and Phase 2 migrations. Verify the allowlisted admin and MFA on a development or staging instance, including the renewal transaction, before releasing. New fields on existing records can be filled in from the editor.
+
+## Project workspace
+
+The interface defaults to Serbian Latin. Open **Projekti**, select a project, and use **Dodaj servis** to choose its purpose and provider. Save a new provider or reusable account in the guided form when needed, then save the project connection. A service such as Web3Forms can be linked with just its provider, delivery address and routing notes. The project overview reads domain and hosting dates and costs from the existing infrastructure records.
+
+The local demo includes **Ilić Enterijer (demo)** with fictional contact-form routing. Existing project types are retained and can be edited from the project form. Apply migration `20261123030000_project_services.sql` after Phase 3 to enable provider-only connections and email routing on a development Supabase project.

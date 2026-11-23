@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { Domain, Hosting, Project, ProjectAccount } from "./database";
+import { t } from "./localization";
 import { businessDate, businessTimezone, dateOffset } from "./renewals";
 
 export function seedInfrastructure(projects: Project[], projectAccounts: ProjectAccount[]) {
   const now = new Date();
   const today = businessDate(now, businessTimezone(process.env.CLIENT_HUB_BUSINESS_TIMEZONE));
-  const notes = "Fictional demo dates and prices.";
+  const notes = t("Fictional demo dates and prices.");
   const date = (days: number | null) => days === null ? null : dateOffset(today, days);
   const stamps = () => ({ id: randomUUID(), created_at: now.toISOString(), updated_at: now.toISOString() });
   const domains: Domain[] = [];
@@ -36,7 +37,7 @@ export function seedInfrastructure(projects: Project[], projectAccounts: Project
     if (!project) continue;
     const link = projectAccounts.find((row) => row.project_id === project.id &&
       (row.purpose === "Website hosting" || row.purpose === "Website deployment"));
-    if (!link) continue;
+    if (!link?.service_account_id) continue;
     hosting.push({
       ...stamps(), project_id: project.id, hosting_account_id: link.service_account_id,
       hosting_type, plan_name, server_notes: null, billing_cycle, renews_on: date(days), renewal_price,

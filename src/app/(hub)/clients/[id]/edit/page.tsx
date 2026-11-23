@@ -1,10 +1,11 @@
+import { t } from "@/lib/localization";
 import { notFound } from "next/navigation";
 import { ClientForm } from "@/components/record-form";
 import { BackLink, Heading } from "@/components/record-ui";
 import { getClient } from "@/lib/records";
 import { idSchema } from "@/lib/validation";
 
-export const metadata = { title: "Edit client" };
+export const metadata = { title: t("Edit client") };
 
 export default async function EditClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,7 +16,7 @@ export default async function EditClientPage({ params }: { params: Promise<{ id:
   return (
     <>
       <BackLink href={`/clients/${id}`}>{client.name}</BackLink>
-      <Heading title="Edit client" />
+      <Heading title={t("Edit client")} />
       <ClientForm client={client} />
     </>
   );

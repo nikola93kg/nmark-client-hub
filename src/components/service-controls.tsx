@@ -1,11 +1,11 @@
 "use client";
 
+import { t } from "@/lib/localization";
 import { useState, useTransition, type ReactNode } from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { Archive, Link2, RotateCcw, Trash2, Unlink } from "lucide-react";
-import { addProjectAccount, manageServiceAccount, removeProjectAccount, removeServiceProvider } from "@/app/(hub)/service-actions";
+import { Archive, RotateCcw, Trash2, Unlink } from "lucide-react";
+import { manageServiceAccount, removeProjectAccount, removeServiceProvider } from "@/app/(hub)/service-actions";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 
 export function ConfirmAction({ trigger, title, description, confirm, action }: {
   trigger: ReactNode;
@@ -32,12 +32,12 @@ export function ConfirmAction({ trigger, title, description, confirm, action }: 
           <AlertDialog.Description>{description}</AlertDialog.Description>
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="dialog-actions">
-            <AlertDialog.Cancel asChild><Button type="button" variant="outline" disabled={pending}>Cancel</Button></AlertDialog.Cancel>
+            <AlertDialog.Cancel asChild><Button type="button" variant="outline" disabled={pending}>{t("Cancel")}</Button></AlertDialog.Cancel>
             <Button type="button" variant="destructive" disabled={pending} onClick={() => startTransition(async () => {
               const result = await action();
               if (result.error) setError(result.error);
               else setOpen(false);
-            })}>{pending ? "Working…" : confirm}</Button>
+            })}>{pending ? t("Working…") : confirm}</Button>
           </div>
         </AlertDialog.Content>
       </AlertDialog.Portal>
@@ -46,9 +46,9 @@ export function ConfirmAction({ trigger, title, description, confirm, action }: 
 }
 
 export function ProviderDelete({ id, name }: { id: string; name: string }) {
-  return <ConfirmAction title={`Delete ${name}?`} description="You can delete this provider once all its accounts have been moved or deleted."
-    confirm="Delete provider" action={() => removeServiceProvider(id)}
-    trigger={<Button type="button" variant="outline"><Trash2 size={16} aria-hidden /> Delete</Button>} />;
+  return <ConfirmAction title={t("Delete {name}?", { name })} description={t("You can delete this provider once all its accounts have been moved or deleted.")}
+    confirm={t("Delete provider")} action={() => removeServiceProvider(id)}
+    trigger={<Button type="button" variant="outline"><Trash2 size={16} aria-hidden /> {t("Delete")}</Button>} />;
 }
 
 export function AccountControls({ id, label, archived, compact }: { id: string; label: string; archived: boolean; compact?: boolean }) {
@@ -60,18 +60,18 @@ export function AccountControls({ id, label, archived, compact }: { id: string; 
     <div>
       <div className="record-menu">
         <Button type="button" variant={compact ? "ghost" : "outline"} disabled={pending}
-          aria-label={`${archived ? "Restore" : "Archive"} ${label}`} onClick={() => {
+          aria-label={t(archived ? "Restore {name}" : "Archive {name}", { name: label })} onClick={() => {
             setMessage({});
             startTransition(async () => {
               const result = await manageServiceAccount(id, action);
-              setMessage(result.error ? { error: result.error } : { success: archived ? "Account restored." : "Account archived." });
+              setMessage(result.error ? { error: result.error } : { success: archived ? t("Account restored.") : t("Account archived.") });
             });
           }}>
-          <Icon size={16} aria-hidden /> {pending ? "Saving…" : archived ? "Restore" : "Archive"}
+          <Icon size={16} aria-hidden /> {pending ? t("Saving…") : archived ? t("Restore") : t("Archive")}
         </Button>
-        <ConfirmAction title={`Delete ${label}?`} confirm="Delete account" action={() => manageServiceAccount(id, "delete")}
-          description="This permanently removes the service account. Archive it to keep its history."
-          trigger={<Button type="button" variant={compact ? "ghost" : "outline"} aria-label={`Delete ${label}`} disabled={pending}><Trash2 size={16} aria-hidden /> Delete</Button>} />
+        <ConfirmAction title={t("Delete {name}?", { name: label })} confirm={t("Delete account")} action={() => manageServiceAccount(id, "delete")}
+          description={t("This permanently removes the service account. Archive it to keep its history.")}
+          trigger={<Button type="button" variant={compact ? "ghost" : "outline"} aria-label={t("Delete {name}", { name: label })} disabled={pending}><Trash2 size={16} aria-hidden /> {t("Delete")}</Button>} />
       </div>
       {message.error && <p className="form-error" role="alert">{message.error}</p>}
       {message.success && <p className="service-success" role="status">{message.success}</p>}
@@ -79,53 +79,8 @@ export function AccountControls({ id, label, archived, compact }: { id: string; 
   );
 }
 
-export function UnlinkAccount({ projectId, associationId, label }: { projectId: string; associationId: string; label: string }) {
-  return <ConfirmAction title={`Unlink ${label}?`} description="The service account will still be available to this workspace and its other projects."
-    confirm="Unlink account" action={() => removeProjectAccount(projectId, associationId)}
-    trigger={<Button type="button" variant="ghost"><Unlink size={16} aria-hidden /> Unlink</Button>} />;
-}
-
-export function LinkAccountForm({ projectId, accounts }: {
-  projectId: string; accounts: { id: string; label: string; provider: string }[];
-}) {
-  const [values, setValues] = useState({ service_account_id: "", purpose: "", notes: "" });
-  const [message, setMessage] = useState<{ error?: string; success?: string }>({});
-  const [pending, startTransition] = useTransition();
-  return (
-    <form className="service-link-form" onSubmit={(event) => {
-      event.preventDefault();
-      setMessage({});
-      startTransition(async () => {
-        const result = await addProjectAccount(projectId, values);
-        if (result.error) setMessage({ error: result.error });
-        else {
-          setMessage({ success: "Account linked to this project." });
-          setValues({ service_account_id: "", purpose: "", notes: "" });
-        }
-      });
-    }}>
-      <fieldset className="form-grid" disabled={pending}>
-        <legend>Link an existing account</legend>
-        <label className="field">Service account
-          <select className="field-control" aria-label="Service account" required value={values.service_account_id}
-            onChange={(e) => setValues({ ...values, service_account_id: e.target.value })}>
-            <option value="">Choose an account</option>
-            {accounts.map(({ id, label, provider }) => <option value={id} key={id}>{label} · {provider}</option>)}
-          </select>
-        </label>
-        <label className="field">Purpose
-          <Input required maxLength={160} value={values.purpose} onChange={(e) => setValues({ ...values, purpose: e.target.value })} />
-        </label>
-        <label className="field field-wide">Connection notes (optional)
-          <textarea className="field-control" rows={2} maxLength={10000} value={values.notes}
-            onChange={(e) => setValues({ ...values, notes: e.target.value })} />
-        </label>
-        <div className="field-wide form-footer">
-          {message.error && <p className="form-error" role="alert">{message.error}</p>}
-          {message.success && <p className="service-success" role="status">{message.success}</p>}
-          <Button disabled={pending}><Link2 size={16} aria-hidden /> {pending ? "Linking…" : "Link account"}</Button>
-        </div>
-      </fieldset>
-    </form>
-  );
+export function UnlinkAccount({ projectId, associationId, label, service }: { projectId: string; associationId: string; label: string; service?: boolean }) {
+  return <ConfirmAction title={t("Unlink {name}?", { name: label })} description={t(service ? "This removes the project connection and keeps the provider and any reusable account." : "The service account will still be available to this workspace and its other projects.")}
+    confirm={t(service ? "Unlink service" : "Unlink account")} action={() => removeProjectAccount(projectId, associationId)}
+    trigger={<Button type="button" variant="ghost"><Unlink size={16} aria-hidden /> {t("Unlink")}</Button>} />;
 }

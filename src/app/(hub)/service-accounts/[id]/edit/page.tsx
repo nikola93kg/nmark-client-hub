@@ -1,10 +1,11 @@
+import { t } from "@/lib/localization";
 import { notFound } from "next/navigation";
 import { BackLink, Heading } from "@/components/record-ui";
 import { AccountForm } from "@/components/service-forms";
 import { getAccount, listProviders } from "@/lib/service-records";
 import { idSchema } from "@/lib/validation";
 
-export const metadata = { title: "Edit service account" };
+export const metadata = { title: t("Edit service account") };
 
 export default async function EditAccountPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,7 +15,7 @@ export default async function EditAccountPage({ params }: { params: Promise<{ id
   return (
     <>
       <BackLink href={`/service-accounts/${id}`}>{account.label}</BackLink>
-      <Heading title="Edit service account" />
+      <Heading title={t("Edit service account")} />
       <AccountForm account={account} providers={providers} />
     </>
   );

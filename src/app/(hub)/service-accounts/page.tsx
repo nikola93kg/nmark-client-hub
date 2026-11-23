@@ -1,3 +1,4 @@
+import { optionLabel, t } from "@/lib/localization";
 import Link from "next/link";
 import { Plus, Settings2 } from "lucide-react";
 import { EmptyState, Heading, ListToolbar, Pagination } from "@/components/record-ui";
@@ -7,7 +8,7 @@ import { listAccounts, listProviders } from "@/lib/service-records";
 import { accountFilters, accountOwnership, accountStatuses } from "@/lib/service-validation";
 import type { QueryParams } from "@/lib/validation";
 
-export const metadata = { title: "Service accounts" };
+export const metadata = { title: t("Service accounts") };
 const path = "/service-accounts";
 
 export default async function ServiceAccountsPage({ searchParams }: { searchParams: Promise<QueryParams> }) {
@@ -19,25 +20,25 @@ export default async function ServiceAccountsPage({ searchParams }: { searchPara
   const filtered = !!(filters.q || filters.status || filters.page > 1 || extraFiltered);
   return (
     <>
-      <Heading title="Service Accounts" description="Track service sign-ins and the projects that use them.">
-        <Button variant="outline" asChild><Link href={`${path}/providers`}><Settings2 size={16} aria-hidden /> Manage providers</Link></Button>
-        <Button asChild><Link href={`${path}/new`}><Plus size={17} aria-hidden /> Add account</Link></Button>
+      <Heading title={t("Service Accounts")} description={t("Track service sign-ins and the projects that use them.")}>
+        <Button variant="outline" asChild><Link href={`${path}/providers`}><Settings2 size={16} aria-hidden /> {t("Manage providers")}</Link></Button>
+        <Button asChild><Link href={`${path}/new`}><Plus size={17} aria-hidden /> {t("Add account")}</Link></Button>
       </Heading>
-      {params.deleted === "1" && <p className="service-success" role="status">Service account deleted.</p>}
+      {params.deleted === "1" && <p className="service-success" role="status">{t("Service account deleted.")}</p>}
       <section className="panel">
         <ListToolbar path={path} collection="service accounts" filters={filters} statuses={accountStatuses} extraFiltered={extraFiltered}>
-          <div className="toolbar-field"><select className="field-control" name="provider" aria-label="Provider" defaultValue={filters.provider}>
-            <option value="">All providers</option>
+          <div className="toolbar-field"><select className="field-control" name="provider" aria-label={t("Provider")} defaultValue={filters.provider}>
+            <option value="">{t("All providers")}</option>
             {providers.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
           </select></div>
-          <div className="toolbar-field"><select className="field-control" name="ownership" aria-label="Ownership" defaultValue={filters.ownership}>
-            <option value="">All ownership types</option>
-            {Object.entries(accountOwnership).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          <div className="toolbar-field"><select className="field-control" name="ownership" aria-label={t("Ownership")} defaultValue={filters.ownership}>
+            <option value="">{t("All ownership types")}</option>
+            {Object.keys(accountOwnership).map((value) => <option key={value} value={value}>{optionLabel(value)}</option>)}
           </select></div>
         </ListToolbar>
         {rows.length ? <ServiceAccountList rows={rows} /> : (
-          <EmptyState title={filtered ? "No matching service accounts" : "No service accounts yet"}
-            description={filtered ? "Adjust the filters or return to the first page." : "Add an account to connect a service to your projects."} />
+          <EmptyState title={filtered ? t("No matching service accounts") : t("No service accounts yet")}
+            description={filtered ? t("Adjust the filters or return to the first page.") : t("Add an account to connect a service to your projects.")} />
         )}
         <Pagination path={path} filters={filters} count={count} extra={extra} />
       </section>

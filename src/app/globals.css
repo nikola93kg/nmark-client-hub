@@ -341,3 +341,17 @@ select.field-control { padding-right: 24px; }
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
 }
+
+.project-service-line { display: grid; gap: 10px; padding: 14px 20px; }
+.project-service-line + .project-service-line, .project-section .service-list + .service-list { border-top: 1px solid var(--border); }
+.project-service-data { min-width: 0; overflow-wrap: anywhere; }
+.project-service-data > * + * { margin-top: 5px; }
+.project-service-facts { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 8px 0 0; }
+.project-service-facts dt, .project-empty { color: var(--muted); }
+.project-service-facts dt { font-size: .82rem; }
+.project-service-facts dd { margin: 0; font-weight: 600; }
+.project-empty { padding: 12px 20px; }
+.wizard-inline-action { align-self: end; }
+.wizard-details { padding: 8px 0; }
+.wizard-details > summary { cursor: pointer; font-weight: 600; }
+.wizard-details .form-grid { padding-inline: 0; }

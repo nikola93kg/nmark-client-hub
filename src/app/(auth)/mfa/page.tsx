@@ -1,3 +1,4 @@
+import { t } from "@/lib/localization";
 import { ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth-actions";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { hubSession } from "@/lib/auth";
 import { safeDestination } from "@/lib/navigation";
 
-export const metadata = { title: "Verify sign-in" };
+export const metadata = { title: t("Verify sign-in") };
 
 export default async function MfaPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const [query, session] = await Promise.all([searchParams, hubSession()]);
@@ -20,14 +21,14 @@ export default async function MfaPage({ searchParams }: { searchParams: Promise<
   return (
     <>
       <span className="auth-icon"><ShieldCheck size={23} aria-hidden /></span>
-      <h1>{factorId ? "Verify your sign-in" : "Set up two-factor authentication"}</h1>
-      {error ? <p className="form-error">Could not load your authenticator. Refresh and try again.</p>
-        : unsupportedFactor ? <p className="form-error">This workspace uses an authenticator app. Review the account’s MFA factors in Supabase Auth.</p>
+      <h1>{factorId ? t("Verify your sign-in") : t("Set up two-factor authentication")}</h1>
+      {error ? <p className="form-error">{t("Could not load your authenticator. Refresh and try again.")}</p>
+        : unsupportedFactor ? <p className="form-error">{t("This workspace uses an authenticator app. Review the account’s MFA factors in Supabase Auth.")}</p>
         : <>
-          <p>{factorId ? "Enter the six-digit code from your authenticator app." : "An authenticator app is required to access workspace data."}</p>
+          <p>{factorId ? t("Enter the six-digit code from your authenticator app.") : t("An authenticator app is required to access workspace data.")}</p>
           <MfaForm factorId={factorId} destination={destination} />
         </>}
-      <form action={signOut}><Button variant="ghost">Sign out</Button></form>
+      <form action={signOut}><Button variant="ghost">{t("Sign out")}</Button></form>
     </>
   );
 }

@@ -1,6 +1,8 @@
+import { t } from "@/lib/localization";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { seedProjectWorkflow } from "./demo-project-workflow";
 import { seedInfrastructure } from "./demo-infrastructure";
 import type { Client, Domain, Hosting, Project, ProjectAccount, Renewal, ServiceAccount, ServiceProvider, Stamps } from "./database";
 
@@ -12,25 +14,26 @@ export type DemoData = PhaseOneDemo & {
   domains: Domain[];
   hosting: Hosting[];
   renewalHistory: Renewal[];
+  projectWorkspaceSeeded: boolean;
 };
 
 function seed(): PhaseOneDemo {
   const created_at = new Date().toISOString();
   const fixtures = [
-    ["Powder Brows Vienna", "Website", "active"],
-    ["Cool Fridge Guys", "Website", "maintenance"],
+    ["Powder Brows Vienna", t("Website"), "active"],
+    ["Cool Fridge Guys", t("Website"), "maintenance"],
     ["Casovi Francuskog", "Education site", "development"],
     ["Dulova Skola", "Education site", "active"],
-    ["Frankultura", "Website", "active"],
+    ["Frankultura", t("Website"), "active"],
   ] as const;
   const clients: Client[] = fixtures.map(([name], index) => ({
     id: randomUUID(), name, company: null, contact_person: null, email: null, phone: null,
-    website: null, country: null, city: null, address: null, notes: "Local demo record.",
+    website: null, country: null, city: null, address: null, notes: t("Local demo record."),
     status: index === 2 ? "prospect" : "active", created_at, updated_at: created_at,
   }));
   const projects: Project[] = fixtures.map(([name, project_type, status], index) => ({
     id: randomUUID(), client_id: clients[index].id, name, website: null, project_type, status,
-    description: "Local demo record.", technology_stack: null, repository_url: null, cms_url: null,
+    description: t("Local demo record."), technology_stack: null, repository_url: null, cms_url: null,
     production_url: null, staging_url: null, technical_notes: null, created_at, updated_at: created_at,
   }));
   return { clients, projects };
@@ -39,13 +42,13 @@ function seed(): PhaseOneDemo {
 function seedServices({ projects }: PhaseOneDemo) {
   const date = new Date().toISOString();
   const standardProviders = [
-    ["Hostinger", "Hosting", "https://www.hostinger.com", "https://hpanel.hostinger.com"],
+    ["Hostinger", t("Hosting"), "https://www.hostinger.com", "https://hpanel.hostinger.com"],
     ["Vercel", "Deployment", "https://vercel.com", "https://vercel.com/dashboard"],
-    ["WebHostingSerbia", "Hosting", null, null],
+    ["WebHostingSerbia", t("Hosting"), null, null],
     ["Cloudflare", "DNS / CDN", "https://www.cloudflare.com", "https://dash.cloudflare.com"],
     ["GitHub", "Source Control", "https://github.com", "https://github.com/dashboard"],
     ["GitLab", "Source Control", "https://about.gitlab.com", "https://gitlab.com"],
-    ["Gmail", "Email", "https://mail.google.com", "https://mail.google.com"],
+    ["Gmail", t("Email"), "https://mail.google.com", "https://mail.google.com"],
     ["YouTube", "Marketing", "https://www.youtube.com", "https://studio.youtube.com"],
     ["Resend", "Transactional Email", "https://resend.com", "https://resend.com/overview"],
     ["Supabase", "Database", "https://supabase.com", "https://supabase.com/dashboard"],
@@ -68,7 +71,7 @@ function seedServices({ projects }: PhaseOneDemo) {
     const account: ServiceAccount = {
       ...stamps(), provider_id: provider.id, label: `${label} (demo)`, ownership_type,
       email: null, username: null, login_url: null, vault_item_id: null,
-      notes: "Fictional demo account.", archived_at: null,
+      notes: t("Fictional service note"), archived_at: null,
     };
     accounts.push(account);
     for (const project of projects.filter(({ name }) => (names as readonly string[]).includes(name))) {
@@ -95,10 +98,10 @@ export function readDemoFile(directory: string): DemoData {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     data = seed();
   }
-  if (data.providers && data.accounts && data.projectAccounts && data.domains && data.hosting && data.renewalHistory) {
+  if (data.providers && data.accounts && data.projectAccounts && data.domains && data.hosting && data.renewalHistory && data.projectWorkspaceSeeded) {
     return {
       ...data, providers: data.providers, accounts: data.accounts, projectAccounts: data.projectAccounts,
-      domains: data.domains, hosting: data.hosting, renewalHistory: data.renewalHistory,
+      domains: data.domains, hosting: data.hosting, renewalHistory: data.renewalHistory, projectWorkspaceSeeded: true,
     };
   }
 
@@ -112,8 +115,9 @@ export function readDemoFile(directory: string): DemoData {
   const upgraded = {
     ...data, providers: data.providers ?? fixtures.providers, accounts: data.accounts ?? fixtures.accounts,
     projectAccounts, domains: data.domains ?? infrastructure.domains, hosting: data.hosting ?? infrastructure.hosting,
-    renewalHistory: data.renewalHistory ?? [],
+    renewalHistory: data.renewalHistory ?? [], projectWorkspaceSeeded: data.projectWorkspaceSeeded ?? false,
   };
+  seedProjectWorkflow(upgraded);
   writeDemo(directory, upgraded);
   return upgraded;
 }
@@ -129,7 +133,7 @@ export function saveDemoRecord<T extends Stamps>(rows: T[], id: string | undefin
   const now = new Date().toISOString();
   if (id) {
     const existing = rows.find((row) => row.id === id);
-    if (!existing) return { error: "This record is no longer available." };
+    if (!existing) return { error: t("This record is no longer available.") };
     Object.assign(existing, input, { updated_at: now });
     return { id };
   }

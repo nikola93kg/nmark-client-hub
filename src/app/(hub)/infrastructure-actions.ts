@@ -1,5 +1,6 @@
 "use server";
 
+import { t } from "@/lib/localization";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -13,7 +14,7 @@ const kinds = z.enum(assetKinds);
 export async function saveInfrastructure(kind: unknown, id: string | undefined, values: unknown) {
   await requireAdmin();
   const target = kinds.safeParse(kind);
-  if (!target.success || (id !== undefined && !idSchema.safeParse(id).success)) return { error: "Invalid record." };
+  if (!target.success || (id !== undefined && !idSchema.safeParse(id).success)) return { error: t("Invalid record.") };
   const result = target.data === "domains"
     ? await parseAndSave(domainSchema, saveDomain, id, values)
     : await parseAndSave(hostingSchema, saveHosting, id, values);
@@ -36,7 +37,7 @@ export async function manageInfrastructure(kind: unknown, id: string, operation:
   await requireAdmin();
   const target = kinds.safeParse(kind);
   const action = z.enum(["archive", "delete"]).safeParse(operation);
-  if (!target.success || !idSchema.safeParse(id).success || !action.success) return { error: "Invalid record or action." };
+  if (!target.success || !idSchema.safeParse(id).success || !action.success) return { error: t("Invalid record or action.") };
   const result = await changeAsset(target.data, id, action.data);
   if (result.error) return result;
   revalidatePath("/", "layout");
@@ -47,7 +48,7 @@ export async function manageInfrastructure(kind: unknown, id: string, operation:
 export async function saveAssetRenewal(kind: unknown, id: string, eventId: string, values: unknown) {
   await requireAdmin();
   const target = kinds.safeParse(kind);
-  if (!target.success || !idSchema.safeParse(id).success || !idSchema.safeParse(eventId).success) return { error: "Invalid renewal target." };
+  if (!target.success || !idSchema.safeParse(id).success || !idSchema.safeParse(eventId).success) return { error: t("Invalid renewal target.") };
   const parsed = renewalSchema.safeParse(values);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const result = await addRenewal(target.data, id, eventId, parsed.data);

@@ -1,3 +1,4 @@
+import { t } from "@/lib/localization";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ClientTable } from "@/components/record-tables";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { listClients } from "@/lib/records";
 import { clientStatuses, listFilters } from "@/lib/validation";
 
-export const metadata = { title: "Clients" };
+export const metadata = { title: t("Clients") };
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const filters = listFilters(await searchParams, clientStatuses);
@@ -15,14 +16,14 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <Heading title="Clients" description="Find client details and the projects associated with each account.">
-        <Button asChild><Link href="/clients/new"><Plus size={18} aria-hidden /> Add client</Link></Button>
+      <Heading title={t("Clients")} description={t("Find client details and the projects associated with each account.")}>
+        <Button asChild><Link href="/clients/new"><Plus size={18} aria-hidden /> {t("Add client")}</Link></Button>
       </Heading>
       <section className="panel">
         <ListToolbar path="/clients" collection="clients" filters={filters} statuses={clientStatuses} />
         {rows.length ? <ClientTable rows={rows} /> : (
-          <EmptyState title={filtered ? "No matching clients" : "No clients yet"}
-            description={filtered ? "Adjust the filters or return to the first page." : "Add your first client to organize their contact details and projects."} />
+          <EmptyState title={filtered ? t("No matching clients") : t("No clients yet")}
+            description={filtered ? t("Adjust the filters or return to the first page.") : t("Add your first client to organize their contact details and projects.")} />
         )}
         <Pagination path="/clients" filters={filters} count={count} />
       </section>

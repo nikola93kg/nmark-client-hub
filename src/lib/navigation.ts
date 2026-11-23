@@ -1,3 +1,4 @@
+const projectServicePath = /^\/projects\/[0-9a-f-]{36}\/services\/new$/i;
 const servicesPath = /^\/service-accounts(?:\/(?:new|[0-9a-f-]{36}(?:\/edit)?|providers(?:\/(?:new|[0-9a-f-]{36}(?:\/edit)?))?))?$/i;
 const infrastructurePath = /^\/(?:renewals|(?:domains|hosting)(?:\/(?:new|[0-9a-f-]{36}(?:\/(?:edit|renew))?))?)$/i;
 const hubPath = /^\/(?:settings|(?:clients|projects)(?:\/(?:new|[0-9a-f-]{36}(?:\/edit)?))?)?$/i;
@@ -5,5 +6,5 @@ const hubPath = /^\/(?:settings|(?:clients|projects)(?:\/(?:new|[0-9a-f-]{36}(?:
 export function safeDestination(value: unknown): string {
   if (typeof value !== "string" || value.length > 2000 || /[\\\u0000-\u001f\u007f]/.test(value)) return "/";
   const path = value.split("?")[0];
-  return hubPath.test(path) || servicesPath.test(path) || infrastructurePath.test(path) ? value : "/";
+  return hubPath.test(path) || servicesPath.test(path) || projectServicePath.test(path) || infrastructurePath.test(path) ? value : "/";
 }
