@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+coverage/
+.env*
+!.env.example
+.client-hub-demo/
+supabase/.temp/
+supabase/.branches/
+*.tsbuildinfo
+.DS_Store
+next-env.d.ts
