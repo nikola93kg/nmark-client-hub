@@ -26,7 +26,7 @@ export function ListToolbar({ path, filters, statuses, collection, children, ext
   path: string;
   filters: ListFilters;
   statuses: readonly string[];
-  collection: "clients" | "projects" | "service accounts";
+  collection: "clients" | "projects" | "service accounts" | "domains" | "hosting";
   children?: ReactNode;
   extraFiltered?: boolean;
 }) {

@@ -12,7 +12,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://127.0.0.1:3000. For a local preview without Supabase, start with `CLIENT_HUB_DEMO=true npm run dev` and choose **Open demo**. The loopback demo adds fictional clients, projects and service accounts and saves edits to the ignored `.client-hub-demo/data.json` file. Use fictional records here. Next.js production builds ignore the demo flag.
+Open http://127.0.0.1:3000. For a local preview without Supabase, start with `CLIENT_HUB_DEMO=true npm run dev` and choose **Open demo**. The loopback demo adds fictional clients, projects, service accounts, domains and hosting plans and saves edits to the ignored `.client-hub-demo/data.json` file. Use fictional records here. Next.js production builds ignore the demo flag.
 
 ## Connect a development Supabase project
 
@@ -48,6 +48,12 @@ In the account editor, paste the **Stable Vault Item ID** and set `NEXT_PUBLIC_P
 
 The Phase 2 migration adds account archiving, search and input constraints, enables access to provider, account and association tables under the existing MFA policies, and retains the Phase 1 data and relationships. Apply it to your development database before running the Phase 2 application against Supabase.
 
-## Phase 3
+## Domains, hosting and renewals
 
-Build the domains and hosting screens, connect records to existing service accounts, and add renewal tracking.
+Open **Domains & Hosting** to manage infrastructure. A registrar account is optional. Hosting uses an existing service account and derives its provider from that account. A domain name can have one non-archived record. Archive the old record before adding a replacement.
+
+Open **Renewals** to view overdue, upcoming and unknown dates. The schedule excludes inactive and archived records. Set `CLIENT_HUB_BUSINESS_TIMEZONE` to the business time zone (default `Europe/Belgrade`). Domain, hosting and history dates are calendar dates. The dashboard uses a 30-day upcoming window. The cost overview uses the next 60 days including today, with totals per currency. Recorded payments include all history marked Paid. Unknown prices are excluded from sums.
+
+Use **Record renewal** from a domain or hosting detail page. History is append-only. Supply **Next renewal date** to update the schedule in the same transaction. Records with history can be archived. Create fresh demo records to try these flows with fictional dates and prices.
+
+For an existing Supabase project, apply `20261123020000_domains_hosting.sql` after the Phase 1 and Phase 2 migrations. Verify the allowlisted admin and MFA on a development or staging instance, including the renewal transaction, before releasing. New fields on existing records can be filled in from the editor.

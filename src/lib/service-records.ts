@@ -1,5 +1,6 @@
 import "server-only";
 import { requireAdmin } from "./auth";
+import { readAll } from "./paged-query";
 import { changeDemo, readDemo } from "./demo-data";
 import { saveDemoRecord, type DemoData } from "./demo-store";
 import type {
@@ -15,25 +16,10 @@ const associationColumns = "id,project_id,service_account_id,purpose,notes,creat
 const projectAccountColumns = `${associationColumns},service_accounts!inner(${listedColumns})` as const;
 const accountProjectColumns = `${associationColumns},projects!inner(id,name,status)` as const;
 const sortColumns = { updated: "updated_at", name: "label", "name-desc": "label", created: "created_at" } as const;
-const batchSize = 250;
 type MutationResult = { error?: string };
 const missing = { error: "This record is no longer available." };
 const foreignKeyError = (code?: string) => code === "23503" || code === "23001";
 const canonicalName = (value: string) => value.trim().toLowerCase();
-
-async function readAll<T>(
-  read: (start: number, end: number) => PromiseLike<{ data: T[] | null; error: { code: string } | null }>,
-  message: string,
-) {
-  const rows: T[] = [];
-  for (let start = 0; ; start += batchSize) {
-    const { data, error } = await read(start, start + batchSize - 1);
-    if (error?.code === "PGRST103" && start > 0) return rows;
-    if (error || !data) throw new Error(message);
-    rows.push(...data);
-    if (data.length < batchSize) return rows;
-  }
-}
 
 function listedAccount(account: ServiceAccount, providers: Map<string, ServiceProvider>): ListedAccount {
   const provider = providers.get(account.provider_id);
@@ -174,7 +160,9 @@ export async function changeAccount(id: string, action: "archive" | "restore" | 
     if (index < 0) return missing;
     const account = data.accounts[index];
     if (action === "delete") {
-      if (data.projectAccounts.some((row) => row.service_account_id === id)) return blocked;
+      if (data.projectAccounts.some((row) => row.service_account_id === id) ||
+          data.domains.some((row) => row.registrar_account_id === id) ||
+          data.hosting.some((row) => row.hosting_account_id === id)) return blocked;
       data.accounts.splice(index, 1);
     } else if (action === "restore" || account.archived_at === null) {
       account.archived_at = action === "archive" ? date : null;

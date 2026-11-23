@@ -42,3 +42,30 @@ test("demo upgrades Phase 1 files in place and persists service changes across r
   assert.equal(readDemoFile(directory).accounts.find((row) => row.id === newId)?.archived_at, "2026-11-23T12:00:00.000Z");
   assert.ok(readDemoFile(directory).projectAccounts.every((row) => row.service_account_id !== newId));
 });
+
+test("demo upgrades Phase 2 infrastructure and keeps saved renewal history on disk", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "client-hub-infra-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const { clients, projects, providers, accounts, projectAccounts } = readDemoFile(directory);
+  writeFileSync(join(directory, "data.json"), JSON.stringify({ clients, projects, providers, accounts, projectAccounts }));
+  const data = readDemoFile(directory);
+  assert.deepEqual(data.projectAccounts, projectAccounts);
+  assert.equal(data.domains.length, 5);
+  assert.ok(data.domains.every(({ name, notes }) => name.endsWith(".example") && notes?.includes("Fictional")));
+  assert.equal(data.hosting.length, 3);
+  assert.ok(data.hosting.every(({ hosting_account_id }) => accounts.some(({ id }) => id === hosting_account_id)));
+  const domain = data.domains[0];
+  changeDemoFile(directory, (draft) => {
+    draft.renewalHistory.push({
+      id: "11111111-1111-4111-8111-111111111111", domain_id: domain.id, hosting_service_id: null,
+      renewed_on: "2026-11-23", period_start: null, period_end: null, paid_amount: 20, currency: "EUR",
+      paid_on: null, payment_status: "paid", next_renewal_on: "2028-11-23", notes: "Fictional test",
+      created_at: "2026-11-23T11:00:00.000Z",
+    });
+    draft.domains[0].expires_on = "2028-11-23";
+  });
+  const saved = readDemoFile(directory);
+  assert.equal(saved.domains[0].expires_on, "2028-11-23");
+  assert.equal(saved.renewalHistory[0].domain_id, domain.id);
+  assert.equal(saved.renewalHistory[0].paid_amount, 20);
+});

@@ -17,7 +17,9 @@ type Option = { value: string; label: string };
 type Field<T> = {
   name: Path<T>;
   label: string;
-  kind?: "email" | "tel" | "url" | "textarea";
+  kind?: "email" | "tel" | "url" | "date" | "textarea";
+  inputMode?: "decimal";
+  emptyLabel?: string;
   options?: Option[];
   optional?: boolean;
   wide?: boolean;
@@ -69,13 +71,13 @@ export function RecordForm<T extends FieldValues>({ onSave, submitLabel, groups,
                   <span><span id={labelId}>{field.label}</span>{!field.optional && <span className="required-mark" aria-hidden> *</span>}</span>
                   {field.options ? (
                     <select className="field-control" {...props}>
-                      <option value="" disabled>Choose {field.label.toLowerCase()}</option>
+                      <option value="" disabled={!field.optional}>{field.emptyLabel ?? `Choose ${field.label.toLowerCase()}`}</option>
                       {field.options.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                     </select>
                   ) : field.kind === "textarea" ? (
                     <textarea className="field-control" rows={5} maxLength={field.maxLength} {...props} />
                   ) : (
-                    <Input type={field.kind ?? "text"} maxLength={field.maxLength} {...props} />
+                    <Input type={field.kind ?? "text"} maxLength={field.maxLength} inputMode={field.inputMode} {...props} />
                   )}
                   {field.hint && <span className="field-hint" id={hintId}>{field.hint}</span>}
                   {message && <span id={errorId} className="field-error" role="alert">{message}</span>}

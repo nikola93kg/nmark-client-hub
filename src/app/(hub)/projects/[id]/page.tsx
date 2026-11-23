@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { RecordMenu } from "@/components/record-menu";
 import { BackLink, DetailGrid, ExternalUrl, Heading, StatusBadge } from "@/components/record-ui";
+import { ProjectInfrastructure } from "@/components/infrastructure-ui";
+import { configuredToday, projectAssets } from "@/lib/infrastructure-records";
 import { ProjectServices } from "@/components/service-ui";
 import { linkableAccounts, listProjectAccounts } from "@/lib/service-records";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,7 @@ export const metadata = { title: "Project details" };
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!idSchema.safeParse(id).success) notFound();
-  const [project, accounts, options] = await Promise.all([getProject(id), listProjectAccounts(id), linkableAccounts()]);
+  const [project, accounts, options, infrastructure] = await Promise.all([getProject(id), listProjectAccounts(id), linkableAccounts(), projectAssets(id)]);
   if (!project) notFound();
 
   return (
@@ -39,6 +41,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         ]} />
         {project.description && <div className="detail-notes"><h3>Description</h3><p>{project.description}</p></div>}
       </section>
+      <ProjectInfrastructure projectId={id} {...infrastructure} today={configuredToday()} />
       <ProjectServices projectId={id} rows={accounts} options={options} />
       <section className="panel">
         <div className="panel-heading"><h2>Technical notes</h2></div>

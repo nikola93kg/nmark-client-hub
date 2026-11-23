@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseBusiness, Globe2, LayoutDashboard, Settings2, UsersRound, Vault } from "lucide-react";
+import { BriefcaseBusiness, CalendarClock, Globe2, LayoutDashboard, Settings2, UsersRound, Vault } from "lucide-react";
 import { Brand } from "./brand";
 
 const links = [
@@ -10,7 +10,8 @@ const links = [
   { href: "/clients", label: "Clients", icon: UsersRound },
   { href: "/projects", label: "Projects", icon: BriefcaseBusiness },
   { href: "/service-accounts", label: "Service Accounts", icon: Vault },
-  { href: null, label: "Domains & Hosting", icon: Globe2 },
+  { href: "/domains", label: "Domains & Hosting", icon: Globe2 },
+  { href: "/renewals", label: "Renewals", icon: CalendarClock },
   { href: "/settings", label: "Settings", icon: Settings2 },
 ] as const;
 
@@ -21,12 +22,8 @@ export function Sidebar() {
       <Link className="brand-link" href="/" aria-label="Client Hub dashboard"><Brand /></Link>
       <nav aria-label="Workspace">
         {links.map(({ href, label, icon: Icon }) => {
-          if (!href) return (
-            <span key={label} className="nav-item nav-unavailable" aria-disabled="true">
-              <Icon size={18} aria-hidden /> {label}<span className="nav-phase">Later</span>
-            </span>
-          );
-          const current = href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
+          const section = href === "/domains" && (path === "/hosting" || path.startsWith("/hosting/"));
+          const current = href === "/" ? path === "/" : section || path === href || path.startsWith(href + "/");
           return (
             <Link key={href} className="nav-item" aria-current={current ? "page" : undefined} href={href}>
               <Icon size={18} aria-hidden /> {label}

@@ -175,7 +175,8 @@ export async function changeRecord(tableName: "clients" | "projects", id: string
         rows[index].status = "archived";
         rows[index].updated_at = new Date().toISOString();
       } else {
-        if (tableName === "projects" && data.projectAccounts.some((row) => row.project_id === id)) {
+        if (tableName === "projects" && (data.projectAccounts.some((row) => row.project_id === id) ||
+            data.domains.some((row) => row.project_id === id) || data.hosting.some((row) => row.project_id === id))) {
           return { error: "This project has related records. Remove the links before deleting the project." };
         }
         if (tableName === "clients" && data.projects.some((row) => row.client_id === id)) {

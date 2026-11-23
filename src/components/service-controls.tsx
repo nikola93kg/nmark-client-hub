@@ -7,7 +7,7 @@ import { addProjectAccount, manageServiceAccount, removeProjectAccount, removeSe
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
-function ConfirmAction({ trigger, title, description, confirm, action }: {
+export function ConfirmAction({ trigger, title, description, confirm, action }: {
   trigger: ReactNode;
   title: string;
   description: string;

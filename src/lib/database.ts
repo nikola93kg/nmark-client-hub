@@ -1,5 +1,6 @@
 import type { ClientInput, ProjectInput } from "./validation";
 
+import type { DomainInput, HostingInput, RenewalInput } from "./infrastructure-validation";
 import type { AccountInput, AssociationInput, ProviderInput } from "./service-validation";
 
 export type Stamps = { id: string; created_at: string; updated_at: string };
@@ -14,6 +15,24 @@ export type ProjectAccount = AssociationInput & Stamps & { project_id: string };
 export type ListedAccount = ServiceAccount & { service_providers: Pick<ServiceProvider, "id" | "name" | "dashboard_url"> };
 export type ProjectAccountView = ProjectAccount & { service_accounts: ListedAccount };
 export type AccountProjectView = ProjectAccount & { projects: Pick<Project, "id" | "name" | "status"> };
+
+export type Domain = Omit<DomainInput, "renewal_responsibility"> & Stamps & {
+  renewal_responsibility: DomainInput["renewal_responsibility"] | null;
+};
+export type Hosting = Omit<HostingInput, "renewal_responsibility" | "billing_cycle"> & Stamps & {
+  renewal_responsibility: HostingInput["renewal_responsibility"] | null;
+  billing_cycle: HostingInput["billing_cycle"] | null;
+};
+export type Renewal = RenewalInput & {
+  id: string; domain_id: string | null; hosting_service_id: string | null; created_at: string;
+};
+export type AssetProject = Pick<Project, "id" | "name"> & { clients: Pick<Client, "id" | "name"> };
+export type AssetAccount = Pick<ServiceAccount, "id" | "label" | "archived_at"> & {
+  service_providers: Pick<ServiceProvider, "id" | "name">;
+};
+export type DomainView = Domain & { kind: "domains"; projects: AssetProject; service_accounts: AssetAccount | null };
+export type HostingView = Hosting & { kind: "hosting"; projects: AssetProject; service_accounts: AssetAccount };
+export type AssetView = DomainView | HostingView;
 
 type Table<Input, Row> = {
   Row: Row;
@@ -59,9 +78,36 @@ export type Database = {
           referencedColumns: ["id"];
         }];
       };
+      domains: Table<DomainInput, Domain> & {
+        Relationships: [{
+          foreignKeyName: "domains_project_id_fkey";
+          columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"];
+        }, {
+          foreignKeyName: "domains_registrar_account_id_fkey";
+          columns: ["registrar_account_id"]; isOneToOne: false; referencedRelation: "service_accounts"; referencedColumns: ["id"];
+        }];
+      };
+      hosting_services: Table<HostingInput, Hosting & { search_text: string }> & {
+        Relationships: [{
+          foreignKeyName: "hosting_services_project_id_fkey";
+          columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"];
+        }, {
+          foreignKeyName: "hosting_services_hosting_account_id_fkey";
+          columns: ["hosting_account_id"]; isOneToOne: false; referencedRelation: "service_accounts"; referencedColumns: ["id"];
+        }];
+      };
+      renewal_history: Table<Omit<Renewal, "created_at">, Renewal> & { Relationships: [] };
     };
     Views: Record<never, never>;
-    Functions: { is_hub_admin: { Args: never; Returns: boolean } };
+    Functions: {
+      is_hub_admin: { Args: never; Returns: boolean };
+      record_asset_renewal: { Args: {
+        p_event_id: string; p_kind: string; p_record_id: string; p_renewed_on: string;
+        p_period_start: string | null; p_period_end: string | null; p_paid_amount: number | null;
+        p_currency: string | null; p_paid_on: string | null; p_payment_status: string;
+        p_next_renewal_on: string | null; p_notes: string | null;
+      }; Returns: string };
+    };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;
   };

@@ -273,6 +273,34 @@ select.field-control { padding-right: 24px; }
 .service-link-form { border-top: 1px solid var(--border); padding-top: 16px; }
 .service-link-form legend { margin-inline: 21px; color: var(--brand); font-weight: 650; }
 
+.infrastructure-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.infrastructure-nav a { padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-weight: 650; }
+.infrastructure-nav a[aria-current="page"], .infrastructure-nav a:hover { color: var(--link); background: var(--accent-soft); }
+.renewal-timing { font-weight: 650; color: var(--muted); }
+.renewal-timing[data-window="overdue"] { color: #9f243a; }
+.renewal-timing[data-window="7"], .renewal-timing[data-window="14"] { color: #80530b; }
+.renewal-notes { min-width: 12ch; white-space: pre-wrap; overflow-wrap: anywhere; }
+.renewal-costs, .dashboard-renewal-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 16px 20px; }
+.renewal-costs h3 { margin-bottom: 5px; }
+.currency-totals { list-style: none; margin: 0; padding: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.renewal-breakdown { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.renewal-breakdown-list { margin: 0; }
+.renewal-breakdown-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 20px; }
+.renewal-breakdown-list > div + div { border-top: 1px solid var(--border); }
+.renewal-breakdown-list dt { min-width: 0; overflow-wrap: anywhere; }
+.renewal-breakdown-list dd { text-align: right; }
+.dashboard-renewal-stats a { display: grid; align-content: start; padding: 9px 10px; border-radius: 7px; color: var(--link); }
+.dashboard-renewal-stats a:hover { background: var(--accent-soft); }
+.dashboard-renewal-stats strong { color: var(--brand); font-size: 1.3rem; }
+.detail-grid dd small { display: block; }
+.status-badge[data-status="paid"] { color: #1f6048; background: #e5f5ee; }
+.status-badge[data-status="expired"], .status-badge[data-status="unpaid"] { color: #932c43; background: #fae9ed; }
+
+@media (max-width: 630px) {
+  .renewal-costs, .dashboard-renewal-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .renewal-breakdown { grid-template-columns: minmax(0, 1fr); }
+}
+
 @media (max-width: 900px) {
   :root { --sidebar-width: 204px; }
   .sidebar { padding-inline: 10px; }

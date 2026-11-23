@@ -1,13 +1,17 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { Client, Project, ProjectAccount, ServiceAccount, ServiceProvider, Stamps } from "./database";
+import { seedInfrastructure } from "./demo-infrastructure";
+import type { Client, Domain, Hosting, Project, ProjectAccount, Renewal, ServiceAccount, ServiceProvider, Stamps } from "./database";
 
 type PhaseOneDemo = { clients: Client[]; projects: Project[] };
 export type DemoData = PhaseOneDemo & {
   providers: ServiceProvider[];
   accounts: ServiceAccount[];
   projectAccounts: ProjectAccount[];
+  domains: Domain[];
+  hosting: Hosting[];
+  renewalHistory: Renewal[];
 };
 
 function seed(): PhaseOneDemo {
@@ -91,17 +95,24 @@ export function readDemoFile(directory: string): DemoData {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     data = seed();
   }
-  if (data.providers && data.accounts && data.projectAccounts) {
-    return { ...data, providers: data.providers, accounts: data.accounts, projectAccounts: data.projectAccounts };
+  if (data.providers && data.accounts && data.projectAccounts && data.domains && data.hosting && data.renewalHistory) {
+    return {
+      ...data, providers: data.providers, accounts: data.accounts, projectAccounts: data.projectAccounts,
+      domains: data.domains, hosting: data.hosting, renewalHistory: data.renewalHistory,
+    };
   }
 
   const fixtures = data.providers || data.accounts || data.projectAccounts
     ? { providers: [], accounts: [], projectAccounts: [] }
     : seedServices(data);
+  const projectAccounts = data.projectAccounts ?? fixtures.projectAccounts;
+  const infrastructure = data.domains || data.hosting || data.renewalHistory
+    ? { domains: [], hosting: [] }
+    : seedInfrastructure(data.projects, projectAccounts);
   const upgraded = {
-    ...data, providers: data.providers ?? fixtures.providers,
-    accounts: data.accounts ?? fixtures.accounts,
-    projectAccounts: data.projectAccounts ?? fixtures.projectAccounts,
+    ...data, providers: data.providers ?? fixtures.providers, accounts: data.accounts ?? fixtures.accounts,
+    projectAccounts, domains: data.domains ?? infrastructure.domains, hosting: data.hosting ?? infrastructure.hosting,
+    renewalHistory: data.renewalHistory ?? [],
   };
   writeDemo(directory, upgraded);
   return upgraded;
