@@ -22,17 +22,18 @@ type Field<T> = {
   optional?: boolean;
   wide?: boolean;
   maxLength?: number;
+  hint?: string;
 };
-type Group<T> = { title: string; fields: Field<T>[] };
+export type FieldGroup<T> = { title: string; fields: Field<T>[] };
 type ClientValues = z.input<typeof clientSchema>;
 type ProjectValues = z.input<typeof projectSchema>;
 
 const statuses = (values: readonly string[]) => values.map((value) => ({ value, label: capitalize(value) }));
 
-function RecordForm<T extends FieldValues>({ collection, id, groups, defaultValues, resolver, cancelUrl }: {
-  collection: "clients" | "projects";
-  id?: string;
-  groups: Group<T>[];
+export function RecordForm<T extends FieldValues>({ onSave, submitLabel, groups, defaultValues, resolver, cancelUrl }: {
+  onSave: (values: T) => Promise<{ error?: string }>;
+  submitLabel: string;
+  groups: FieldGroup<T>[];
   defaultValues: DefaultValues<T>;
   resolver: Resolver<T>;
   cancelUrl: string;
@@ -45,7 +46,7 @@ function RecordForm<T extends FieldValues>({ collection, id, groups, defaultValu
     <form className="record-form" noValidate onSubmit={handleSubmit(() => {
       setError(undefined);
       startTransition(async () => {
-        const result = await saveRecord(collection, id, getValues());
+        const result = await onSave(getValues());
         if (result.error) setError(result.error);
       });
     })}>
@@ -56,11 +57,12 @@ function RecordForm<T extends FieldValues>({ collection, id, groups, defaultValu
             {fields.map((field) => {
               const message = getFieldState(field.name, formState).error?.message;
               const errorId = field.name + "-error";
+              const hintId = field.name + "-hint";
               const labelId = field.name + "-label";
               const props = {
                 ...register(field.name), id: field.name, required: !field.optional,
                 "aria-labelledby": labelId, "aria-invalid": !!message,
-                "aria-describedby": message ? errorId : undefined,
+                "aria-describedby": [message && errorId, field.hint && hintId].filter(Boolean).join(" ") || undefined,
               };
               return (
                 <label className={field.wide ? "field field-wide" : "field"} key={field.name} htmlFor={field.name}>
@@ -75,6 +77,7 @@ function RecordForm<T extends FieldValues>({ collection, id, groups, defaultValu
                   ) : (
                     <Input type={field.kind ?? "text"} maxLength={field.maxLength} {...props} />
                   )}
+                  {field.hint && <span className="field-hint" id={hintId}>{field.hint}</span>}
                   {message && <span id={errorId} className="field-error" role="alert">{message}</span>}
                 </label>
               );
@@ -85,13 +88,13 @@ function RecordForm<T extends FieldValues>({ collection, id, groups, defaultValu
       <div className="form-footer">
         {error && <p className="form-error" role="alert">{error}</p>}
         <Button asChild variant="outline"><Link href={cancelUrl}>Cancel</Link></Button>
-        <Button disabled={pending}><Save size={16} aria-hidden /> {pending ? "Saving…" : "Save " + (collection === "clients" ? "client" : "project")}</Button>
+        <Button disabled={pending}><Save size={16} aria-hidden /> {pending ? "Saving…" : submitLabel}</Button>
       </div>
     </form>
   );
 }
 
-const clientGroups: Group<ClientValues>[] = [
+const clientGroups: FieldGroup<ClientValues>[] = [
   { title: "Client information", fields: [
     { name: "name", label: "Client name", maxLength: 160 },
     { name: "company", label: "Company or business name", optional: true, maxLength: 160 },
@@ -119,13 +122,13 @@ export function ClientForm({ client }: { client?: Client }) {
     status: client?.status ?? "prospect", notes: client?.notes ?? "",
   };
 
-  return <RecordForm collection="clients" id={client?.id} groups={clientGroups} defaultValues={values}
+  return <RecordForm onSave={(input) => saveRecord("clients", client?.id, input)} submitLabel="Save client" groups={clientGroups} defaultValues={values}
     resolver={zodResolver(clientSchema, undefined, { raw: true })}
     cancelUrl={client ? `/clients/${client.id}` : "/clients"} />;
 }
 
 export function ProjectForm({ project, clients, clientId }: { project?: Project; clients: ClientOption[]; clientId?: string }) {
-  const groups: Group<ProjectValues>[] = [
+  const groups: FieldGroup<ProjectValues>[] = [
     { title: "Project information", fields: [
       { name: "name", label: "Project name", maxLength: 160 },
       { name: "client_id", label: "Client", options: clients.map(({ id, name, status }) => ({ value: id, label: status === "archived" ? `${name} (archived)` : name })) },
@@ -153,7 +156,7 @@ export function ProjectForm({ project, clients, clientId }: { project?: Project;
     staging_url: project?.staging_url ?? "", technical_notes: project?.technical_notes ?? "",
   };
 
-  return <RecordForm collection="projects" id={project?.id} groups={groups} defaultValues={values}
+  return <RecordForm onSave={(input) => saveRecord("projects", project?.id, input)} submitLabel="Save project" groups={groups} defaultValues={values}
     resolver={zodResolver(projectSchema, undefined, { raw: true })}
     cancelUrl={project ? `/projects/${project.id}` : clientId ? `/clients/${clientId}` : "/projects"} />;
 }

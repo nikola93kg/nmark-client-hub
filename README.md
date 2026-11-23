@@ -12,11 +12,11 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://127.0.0.1:3000. For a local preview without Supabase, start with `CLIENT_HUB_DEMO=true npm run dev` and choose **Open demo**. The loopback demo writes the five fictional examples and subsequent edits to the ignored `.client-hub-demo/data.json` file. Use fictional records here. Next.js production builds ignore the demo flag.
+Open http://127.0.0.1:3000. For a local preview without Supabase, start with `CLIENT_HUB_DEMO=true npm run dev` and choose **Open demo**. The loopback demo adds fictional clients, projects and service accounts and saves edits to the ignored `.client-hub-demo/data.json` file. Use fictional records here. Next.js production builds ignore the demo flag.
 
 ## Connect a development Supabase project
 
-1. Apply the migration in [supabase/migrations](supabase/migrations) to a dedicated development Supabase project. For local Supabase CLI, use `supabase start` from this directory. The checked-in local configuration disables signup and enables TOTP.
+1. Apply the migrations in order from [supabase/migrations](supabase/migrations) to a dedicated development Supabase project. For local Supabase CLI, use `supabase start` from this directory. The checked-in local configuration disables signup and enables TOTP.
 2. For a hosted development project, disable new-user signup and anonymous sign-in, enable TOTP enrollment and verification, and set the Auth Site URL to the application's URL. Use the values from `.env.example` for production targets when provisioning is separately approved. [Supabase Auth settings](https://supabase.com/docs/guides/auth/general-configuration)
 3. Create and confirm the single administrator in Supabase Auth. Add its Auth user UUID to the allowlist from the Supabase SQL editor or an administrative database session.
 
@@ -40,6 +40,14 @@ npm run build
 
 The tests cover field and redirect validation plus the migration's RLS, audit timestamps and foreign-key behavior in embedded PostgreSQL with simulated Supabase claims. Live Supabase Auth, TOTP and PostgREST can be checked with the development project configured above.
 
-## Phase 2 handoff
+## Service accounts and Pass Vault
 
-The migration lays out providers, accounts and project/account associations. Phase 2 adds their CRUD, purpose-based associations and Pass Vault links built from `NEXT_PUBLIC_PASS_VAULT_URL` and the opaque `vault_item_id`. Grant the authenticated role access to those tables in the Phase 2 migration, retaining their admin and MFA policies.
+Open **Service Accounts → Manage providers** to add providers, then create accounts and select each account’s provider. Open a project and use **Services & Accounts** to link an existing account with a purpose. One account can serve multiple projects and purposes. Archiving an account keeps existing connections and removes it from the picker until it is restored. Unlinking removes only the selected connection.
+
+In the account editor, paste the **Stable Vault Item ID** and set `NEXT_PUBLIC_PASS_VAULT_URL` to the Vault origin in your environment. **Open in Pass Vault** opens the entry in a new tab, where Pass Vault handles its own sign-in, MFA and unlock. Keep login and dashboard URLs free of query parameters and fragments. [Pass Vault integration contract](https://github.com/nikola93kg/pass-manager/blob/main/CLIENT_HUB_INTEGRATION.md)
+
+The Phase 2 migration adds account archiving, search and input constraints, enables access to provider, account and association tables under the existing MFA policies, and retains the Phase 1 data and relationships. Apply it to your development database before running the Phase 2 application against Supabase.
+
+## Phase 3
+
+Build the domains and hosting screens, connect records to existing service accounts, and add renewal tracking.

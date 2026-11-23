@@ -61,8 +61,10 @@ export type ListFilters<Status extends string = string> = {
   page: number;
 };
 
+export type QueryParams = Record<string, string | string[] | undefined>;
+
 export function listFilters<Status extends string>(
-  params: Record<string, string | string[] | undefined>, statuses: readonly Status[],
+  params: QueryParams, statuses: readonly Status[],
 ): ListFilters<Status> {
   return {
     q: typeof params.q === "string" ? params.q.replace(/[%_*\\]/g, " ").trim().slice(0, 120) : "",

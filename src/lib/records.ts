@@ -1,5 +1,5 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { saveDemoRecord } from "./demo-store";
 import { requireAdmin } from "./auth";
 import { readDemo, changeDemo } from "./demo-data";
 import { clientColumns, listedProjectColumns, type Client, type ListedProject, type Project } from "./database";
@@ -139,22 +139,9 @@ export async function dashboardData() {
   };
 }
 
-function saveLocal<T extends Client | Project>(rows: T[], id: string | undefined, input: Omit<T, "id" | "created_at" | "updated_at">) {
-  const now = new Date().toISOString();
-  if (id) {
-    const existing = rows.find((row) => row.id === id);
-    if (!existing) return { error: "This record is no longer available." };
-    Object.assign(existing, input, { updated_at: now });
-    return { id };
-  }
-  const next = { ...input, id: randomUUID(), created_at: now, updated_at: now } as T;
-  rows.push(next);
-  return { id: next.id };
-}
-
 export async function saveClient(id: string | undefined, input: ClientInput) {
   const session = await requireAdmin();
-  if (session.kind === "demo") return changeDemo((data) => saveLocal<Client>(data.clients, id, input));
+  if (session.kind === "demo") return changeDemo((data) => saveDemoRecord<Client>(data.clients, id, input));
   const table = session.supabase.from("clients");
   const result = await (id ? table.update(input).eq("id", id) : table.insert(input)).select("id").maybeSingle();
   if (result.error) return { error: "Could not save the client. Try again." };
@@ -165,7 +152,7 @@ export async function saveProject(id: string | undefined, input: ProjectInput) {
   const session = await requireAdmin();
   if (session.kind === "demo") {
     return changeDemo((data) => data.clients.some(({ id }) => id === input.client_id)
-      ? saveLocal<Project>(data.projects, id, input)
+      ? saveDemoRecord<Project>(data.projects, id, input)
       : { error: "The selected client is no longer available." });
   }
 
@@ -188,6 +175,9 @@ export async function changeRecord(tableName: "clients" | "projects", id: string
         rows[index].status = "archived";
         rows[index].updated_at = new Date().toISOString();
       } else {
+        if (tableName === "projects" && data.projectAccounts.some((row) => row.project_id === id)) {
+          return { error: "This project has related records. Remove the links before deleting the project." };
+        }
         if (tableName === "clients" && data.projects.some((row) => row.client_id === id)) {
           return { error: "This client still has projects. Move or delete them before deleting the client." };
         }

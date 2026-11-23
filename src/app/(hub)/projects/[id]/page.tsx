@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { RecordMenu } from "@/components/record-menu";
 import { BackLink, DetailGrid, ExternalUrl, Heading, StatusBadge } from "@/components/record-ui";
+import { ProjectServices } from "@/components/service-ui";
+import { linkableAccounts, listProjectAccounts } from "@/lib/service-records";
 import { Button } from "@/components/ui/button";
 import { getProject } from "@/lib/records";
 import { dateLabel } from "@/lib/utils";
@@ -13,7 +15,7 @@ export const metadata = { title: "Project details" };
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!idSchema.safeParse(id).success) notFound();
-  const project = await getProject(id);
+  const [project, accounts, options] = await Promise.all([getProject(id), listProjectAccounts(id), linkableAccounts()]);
   if (!project) notFound();
 
   return (
@@ -37,6 +39,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         ]} />
         {project.description && <div className="detail-notes"><h3>Description</h3><p>{project.description}</p></div>}
       </section>
+      <ProjectServices projectId={id} rows={accounts} options={options} />
       <section className="panel">
         <div className="panel-heading"><h2>Technical notes</h2></div>
         <div className="detail-notes"><p>{project.technical_notes || "No technical notes yet."}</p></div>

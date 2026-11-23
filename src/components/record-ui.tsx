@@ -22,11 +22,13 @@ export function BackLink({ href, children }: { href: string; children: ReactNode
   return <Link className="back-link" href={href}><ArrowLeft size={16} aria-hidden />{children}</Link>;
 }
 
-export function ListToolbar({ path, filters, statuses, collection }: {
+export function ListToolbar({ path, filters, statuses, collection, children, extraFiltered }: {
   path: string;
   filters: ListFilters;
   statuses: readonly string[];
-  collection: "clients" | "projects";
+  collection: "clients" | "projects" | "service accounts";
+  children?: ReactNode;
+  extraFiltered?: boolean;
 }) {
   return (
     <form className="list-toolbar" method="get" action={path} role="search" aria-label={`Filter ${collection}`}>
@@ -49,19 +51,23 @@ export function ListToolbar({ path, filters, statuses, collection }: {
           <option value="name-desc">Name Z–A</option>
         </select>
       </div>
+      {children}
       <Button variant="outline">Apply</Button>
-      {(filters.q || filters.status || filters.sort !== "updated") && (
+      {(filters.q || filters.status || filters.sort !== "updated" || extraFiltered) && (
         <Link className="text-link" href={path}>Reset</Link>
       )}
     </form>
   );
 }
 
-export function Pagination({ path, filters, count }: { path: string; filters: ListFilters; count: number }) {
+export function Pagination({ path, filters, count, extra }: {
+  path: string; filters: ListFilters; count: number; extra?: Record<string, string>;
+}) {
   const { page, q, status, sort } = filters;
   const pages = Math.max(1, Math.ceil(count / pageSize));
   const link = (target: number) => {
     const params = new URLSearchParams();
+    if (extra) for (const [key, value] of Object.entries(extra)) if (value) params.set(key, value);
     if (q) params.set("q", q);
     if (status) params.set("status", status);
     if (sort !== "updated") params.set("sort", sort);

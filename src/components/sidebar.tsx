@@ -9,7 +9,7 @@ const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: UsersRound },
   { href: "/projects", label: "Projects", icon: BriefcaseBusiness },
-  { href: null, label: "Service Accounts", icon: Vault },
+  { href: "/service-accounts", label: "Service Accounts", icon: Vault },
   { href: null, label: "Domains & Hosting", icon: Globe2 },
   { href: "/settings", label: "Settings", icon: Settings2 },
 ] as const;

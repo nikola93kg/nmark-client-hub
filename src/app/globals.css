@@ -180,7 +180,7 @@ a.nav-item:hover { background: #26143c; color: #fff; }
 .search-field { flex: 1 1 220px; min-width: 0; position: relative; }
 .search-field svg { position: absolute; top: 12px; left: 11px; color: var(--muted); pointer-events: none; }
 .search-field input { padding-left: 36px; }
-.toolbar-field { flex: 0 1 auto; }
+.toolbar-field { flex: 0 1 auto; min-width: 0; max-width: 100%; }
 .text-link, .back-link { color: var(--link); font-weight: 620; }
 .text-link:hover, .back-link:hover, .record-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .back-link { display: inline-flex; align-items: center; gap: 8px; }
@@ -259,6 +259,20 @@ select.field-control { padding-right: 24px; }
 .auth-form .button { margin-top: 3px; }
 .mfa-qr { padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
 
+.service-list { margin: 0; padding: 0; list-style: none; }
+.service-row { display: grid; justify-items: start; gap: 9px; padding: 15px 20px; }
+.service-row + .service-row { border-top: 1px solid var(--border); }
+.service-row-top { display: flex; width: 100%; justify-content: space-between; align-items: start; gap: 12px; }
+.service-identity { min-width: 0; overflow-wrap: anywhere; }
+.service-identity p, .service-muted { color: var(--muted); }
+.service-notes { white-space: pre-wrap; }
+.service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 9px; }
+.service-muted { display: inline-flex; flex-wrap: wrap; gap: 4px 9px; font-size: .84rem; }
+.service-success { width: fit-content; border-radius: 7px; padding: 6px 10px; background: #e5f5ee; color: #1f6048; font-size: .84rem; }
+.field-hint { color: var(--muted); font-weight: 450; }
+.service-link-form { border-top: 1px solid var(--border); padding-top: 16px; }
+.service-link-form legend { margin-inline: 21px; color: var(--brand); font-weight: 650; }
+
 @media (max-width: 900px) {
   :root { --sidebar-width: 204px; }
   .sidebar { padding-inline: 10px; }
@@ -270,7 +284,7 @@ select.field-control { padding-right: 24px; }
   .hub-shell { display: block; }
   .sidebar { position: static; height: auto; padding: 15px 14px 8px; overflow: hidden; }
   .brand-link { margin: 0 3px 12px; }
-  .sidebar nav { display: flex; overflow-x: auto; padding: 3px; }
+  .sidebar nav { display: flex; flex-wrap: wrap; padding: 3px; }
   .nav-item { min-height: 39px; padding-inline: 9px; }
   .nav-unavailable { display: none; }
   .topbar { min-height: 52px; padding: 6px 16px; }
